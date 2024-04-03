@@ -323,12 +323,7 @@ def make_model(model_config: Dict=None):
         embedder=embedder,
         decoder=decoder,
         unembedder=unembedder
-    )
-    num_gpus = torch.cuda.device_count()
-    print("num_gpus: ", num_gpus)
-    
-    model.cuda()
-    model = torch.nn.DataParallel(model, device_ids=[i for i in range(num_gpus)])
+    )    
 
     if model_config["ft_only_encoder"]:
         model.switch_ft_mode(ft_encoder_only=True)
