@@ -224,7 +224,7 @@ def make_trainer(
             "RLsum": round(rouge_output["rougeLsum"], 4),
         }
     
-    def preprocess_logits_for_metrics(logits, labels):
+    def preprocess_logits_for_metrics(logits, labels=None):
         """
         Original Trainer may have a memory leak. 
         This is a workaround to avoid storing too many tensors that are not needed.
