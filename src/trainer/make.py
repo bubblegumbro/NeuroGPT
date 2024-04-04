@@ -193,7 +193,7 @@ def make_trainer(
         seed=seed,
         fp16=fp16,
         max_grad_norm=max_grad_norm,
-        gradient_accumulation_steps=4,
+        gradient_accumulation_steps=2,
         gradient_checkpointing=True,
         eval_accumulation_steps=20,
         deepspeed=deepspeed,
