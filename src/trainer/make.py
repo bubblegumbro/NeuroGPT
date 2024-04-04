@@ -201,13 +201,42 @@ def make_trainer(
     data_collator = _cat_data_collator
     is_deepspeed = deepspeed is not None
     # TODO: custom compute_metrics so far not working in multi-gpu setting
-    compute_metrics = decoding_accuracy_metrics if training_style=='decoding' and compute_metrics is None else compute_metrics
-
+   # compute_metrics = decoding_accuracy_metrics if training_style=='decoding' and compute_metrics is None else compute_metrics
+    def compute_metrics(pred):
+    
+        labels_ids = pred.label_ids
+        pred_ids = torch.argmax(logits, dim=-1)
+    
+        pred_str = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
+        labels_ids[labels_ids == -100] = tokenizer.pad_token_id
+        label_str = tokenizer.batch_decode(labels_ids, skip_special_tokens=True)
+    
+        rouge_output = rouge.compute(
+            predictions=pred_str,
+            references=label_str,
+            rouge_types=["rouge1", "rouge2", "rougeL", "rougeLsum"],
+        )
+    
+        return {
+            "R1": round(rouge_output["rouge1"], 4),
+            "R2": round(rouge_output["rouge2"], 4),
+            "RL": round(rouge_output["rougeL"], 4),
+            "RLsum": round(rouge_output["rougeLsum"], 4),
+        }
+    
+    def preprocess_logits_for_metrics(logits, labels):
+        """
+        Original Trainer may have a memory leak. 
+        This is a workaround to avoid storing too many tensors that are not needed.
+        """
+        pred_ids = torch.argmax(logits[0], dim=-1)
+        return pred_ids, labels
     trainer = Trainer(
         args=trainer_args,
         model_init=model_init,
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         data_collator=data_collator,
         compute_metrics=compute_metrics,
         optimizers=optimizers,
