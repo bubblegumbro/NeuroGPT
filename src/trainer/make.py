@@ -194,6 +194,7 @@ def make_trainer(
         fp16=fp16,
         max_grad_norm=max_grad_norm,
         gradient_accumulation_steps=4,
+        gradient_checkpointing=True,
         eval_accumulation_steps=20,
         deepspeed=deepspeed,
         **kwargs
