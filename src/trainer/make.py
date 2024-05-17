@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 from sklearn.metrics import accuracy_score
 import torch
-from transformers import TrainingArguments,TrainerCallback
+from transformers import TrainingArguments, TrainerCallback
 from trainer.base import Trainer
 
 
@@ -15,7 +15,7 @@ class CSVLogCallback(TrainerCallback):
         super().__init__()
         self.train_log_filepath = None
         self.eval_log_filepath = None
-        
+
     def on_log(
         self,
         args,
@@ -112,8 +112,8 @@ def make_trainer(
     adam_beta2: float=0.999,
     adam_epsilon: float=1e-8,
     max_grad_norm: float=1.0,
-    per_device_train_batch_size: int = 64,
-    per_device_eval_batch_size: int = 64,
+    per_device_train_batch_size: int = 32,  # Reduced batch size
+    per_device_eval_batch_size: int = 32,   # Reduced batch size
     dataloader_num_workers: int = 0,
     max_steps: int = 400000,
     num_train_epochs: int = 1,
@@ -133,6 +133,7 @@ def make_trainer(
     fp16: bool = True,
     deepspeed: str = None,
     compute_metrics = None,
+    gradient_accumulation_steps: int = 2,  # Added gradient accumulation
     **kwargs
     ) -> Trainer:
     """
@@ -193,7 +194,7 @@ def make_trainer(
         seed=seed,
         fp16=fp16,
         max_grad_norm=max_grad_norm,
-        gradient_accumulation_steps=1,
+        gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
         eval_accumulation_steps=3,
         deepspeed=deepspeed,
         **kwargs
