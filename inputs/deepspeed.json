@@ -6,32 +6,16 @@
     "enabled": true,
     "auto_cast": true,
     "loss_scale": 0,
-    "initial_scale_power": 16,
-    "loss_scale_window": 1000,
-    "hysteresis": 2,
-    "consecutive_hysteresis": false,
-    "min_loss_scale": 1
+    "initial_scale_power": 16
   },
   "zero_optimization": {
-    "stage": 0,
+    "stage": 2,
     "allgather_partitions": true,
-    "allgather_bucket_size": 500000000,
-    "overlap_comm": false,
+    "allgather_bucket_size": 2e8,
+    "overlap_comm": true,
     "reduce_scatter": true,
-    "reduce_bucket_size": 500000000,
-    "contiguous_gradients": true,
-    "stage3_max_live_parameters": 1000000000,
-    "stage3_max_reuse_distance": 1000000000,
-    "stage3_prefetch_bucket_size": 500000000,
-    "stage3_param_persistence_threshold": 1000000,
-    "sub_group_size": 1000000000000,
-    "elastic_checkpoint": true,
-    "stage3_gather_16bit_weights_on_model_save": true,
-    "ignore_unused_parameters": true,
-    "round_robin_gradients": true,
-    "zero_hpz_partition_size": 1,
-    "zero_quantized_weights": true,
-    "zero_quantized_gradients": true
+    "reduce_bucket_size": 2e8,
+    "contiguous_gradients": true
   },
   "wandb": {
     "enabled": false,
