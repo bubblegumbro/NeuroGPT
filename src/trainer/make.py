@@ -192,7 +192,7 @@ def make_trainer(
         evaluation_strategy=evaluation_strategy,
         eval_steps=eval_steps if eval_steps is not None else logging_steps,
         seed=seed,
-        fp16=fp16,
+        fp16=True,
         max_grad_norm=max_grad_norm,
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
         eval_accumulation_steps=3,
