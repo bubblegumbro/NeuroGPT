@@ -1,7 +1,7 @@
 {
-  "train_batch_size": 16,  // Adjusted based on the total number of GPUs you are using
-  "train_micro_batch_size_per_gpu": 2,  // Reduced for FP32 to fit within memory constraints
-  "gradient_accumulation_steps": 8,  // Increased to compensate for smaller batch sizes
+  "train_batch_size": 16,
+  "train_micro_batch_size_per_gpu": 2,
+  "gradient_accumulation_steps": 8,
   "fp16": {
     "enabled": false
   },
