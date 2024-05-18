@@ -32,9 +32,7 @@
     "zero_hpz_partition_size": 1,
     "zero_quantized_weights": true,
     "zero_quantized_gradients": true
-  }
-}
-,
+  },
   "wandb": {
     "enabled": false,
     "project": "NeuroGPT"
