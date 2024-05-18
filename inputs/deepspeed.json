@@ -1,20 +1,17 @@
 {
-  "train_batch_size": 32,
-  "train_micro_batch_size_per_gpu": 4,
-  "gradient_accumulation_steps": 4,
+  "train_batch_size": 16,  // Adjusted based on the total number of GPUs you are using
+  "train_micro_batch_size_per_gpu": 2,  // Reduced for FP32 to fit within memory constraints
+  "gradient_accumulation_steps": 8,  // Increased to compensate for smaller batch sizes
   "fp16": {
-    "enabled": true,
-    "auto_cast": true,
-    "loss_scale": 0,
-    "initial_scale_power": 16
+    "enabled": false
   },
   "zero_optimization": {
-    "stage": 2,
+    "stage": 0,
     "allgather_partitions": true,
-    "allgather_bucket_size": 2e8,
-    "overlap_comm": true,
+    "allgather_bucket_size": 500000000,
+    "overlap_comm": false,
     "reduce_scatter": true,
-    "reduce_bucket_size": 2e8,
+    "reduce_bucket_size": 500000000,
     "contiguous_gradients": true
   },
   "wandb": {
