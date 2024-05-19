@@ -8,30 +8,6 @@ import torch
 from transformers import TrainingArguments, TrainerCallback
 from trainer.base import Trainer
 
-def preprocess_logits_for_metrics(output, labels):
-    """
-    Preprocess logits to be memory efficient while retaining data integrity.
-    
-    Parameters:
-    - output: torch.Tensor, raw output from the model.
-    - labels: torch.Tensor, corresponding labels.
-    
-    Returns:
-    - processed_logits: torch.Tensor, processed logits.
-    - labels: torch.Tensor, labels (unchanged).
-    """
-    # Since output is already a tensor, directly process it
-    logits = output['outputs']
-    
-    # Ensure logits are in float32 to save memory
-    if logits.dtype != torch.float32:
-        logits = logits.to(torch.float32)
-    
-    # Use in-place softmax operation
-    processed_logits = torch.softmax(logits, dim=-1)
-    
-    return processed_logits, labels
-
 
 class CSVLogCallback(TrainerCallback):
 
@@ -138,7 +114,7 @@ def make_trainer(
     max_grad_norm: float=1.0,
     per_device_train_batch_size: int = 1,  # Reduced batch size
     per_device_eval_batch_size: int = 1,   # Reduced batch size
-    dataloader_num_workers: int = 4,
+    dataloader_num_workers: int = 2,
     max_steps: int = 400000,
     num_train_epochs: int = 1,
     lr_scheduler_type: str = 'linear',
@@ -237,7 +213,6 @@ def make_trainer(
         data_collator=data_collator,
         compute_metrics=compute_metrics,
         optimizers=optimizers,
-        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         is_deepspeed=is_deepspeed
     )
 
