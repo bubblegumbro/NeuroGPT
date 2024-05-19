@@ -112,9 +112,9 @@ def make_trainer(
     adam_beta2: float=0.999,
     adam_epsilon: float=1e-8,
     max_grad_norm: float=1.0,
-    per_device_train_batch_size: int = 4,  # Reduced batch size
-    per_device_eval_batch_size: int = 4,   # Reduced batch size
-    dataloader_num_workers: int = 0,
+    per_device_train_batch_size: int = 1,  # Reduced batch size
+    per_device_eval_batch_size: int = 1,   # Reduced batch size
+    dataloader_num_workers: int = 4,
     max_steps: int = 400000,
     num_train_epochs: int = 1,
     lr_scheduler_type: str = 'linear',
