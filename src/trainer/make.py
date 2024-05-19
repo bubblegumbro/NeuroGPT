@@ -13,23 +13,15 @@ def preprocess_logits_for_metrics(output, labels):
     Preprocess logits to be memory efficient while retaining data integrity.
     
     Parameters:
-    - output: dict, raw output from the model.
+    - output: torch.Tensor, raw output from the model.
     - labels: torch.Tensor, corresponding labels.
     
     Returns:
     - processed_logits: torch.Tensor, processed logits.
     - labels: torch.Tensor, labels (unchanged).
     """
-    # Print the type and keys of the 'outputs' value
-    outputs = output['outputs']
-    print("Outputs type:", type(outputs))
-    if isinstance(outputs, dict):
-        print("Outputs keys:", outputs.keys())
-    
-    # Extract logits from the output dictionary using the correct key
-    logits = outputs.get('logits') or outputs.get('predictions')  # Add more keys as needed
-    if logits is None:
-        raise KeyError("Neither 'logits' nor 'predictions' key found in the outputs")
+    # Since output is already a tensor, directly process it
+    logits = output
     
     # Ensure logits are in float32 to save memory
     if logits.dtype != torch.float32:
@@ -39,7 +31,6 @@ def preprocess_logits_for_metrics(output, labels):
     processed_logits = torch.softmax(logits, dim=-1)
     
     return processed_logits, labels
-
 
 
 class CSVLogCallback(TrainerCallback):
