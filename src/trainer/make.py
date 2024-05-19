@@ -8,17 +8,21 @@ import torch
 from transformers import TrainingArguments, TrainerCallback
 from trainer.base import Trainer
 
-def preprocess_logits_for_metrics(logits, _):
+def preprocess_logits_for_metrics(output, labels):
     """
     Preprocess logits to be memory efficient while retaining data integrity.
     
     Parameters:
-    - logits: torch.Tensor, raw logits from the model.
-    - _: Placeholder for labels, not used in self-supervised tasks.
+    - output: dict, raw output from the model.
+    - labels: torch.Tensor, corresponding labels.
     
     Returns:
     - processed_logits: torch.Tensor, processed logits.
+    - labels: torch.Tensor, labels (unchanged).
     """
+    # Extract logits from the output dictionary
+    logits = output['logits']
+    
     # Ensure logits are in float32 to save memory
     if logits.dtype != torch.float32:
         logits = logits.to(torch.float32)
@@ -26,7 +30,8 @@ def preprocess_logits_for_metrics(logits, _):
     # Use in-place softmax operation
     processed_logits = torch.softmax(logits, dim=-1)
     
-    return processed_logits, None
+    return processed_logits, labels
+
 
 
 class CSVLogCallback(TrainerCallback):
