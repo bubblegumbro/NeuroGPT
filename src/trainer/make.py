@@ -114,7 +114,7 @@ def make_trainer(
     max_grad_norm: float=1.0,
     per_device_train_batch_size: int = 1,  # Reduced batch size
     per_device_eval_batch_size: int = 1,   # Reduced batch size
-    dataloader_num_workers: int = 2,
+    dataloader_num_workers: int = 1,
     max_steps: int = 400000,
     num_train_epochs: int = 1,
     lr_scheduler_type: str = 'linear',
