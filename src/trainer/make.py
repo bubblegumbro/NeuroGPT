@@ -20,9 +20,16 @@ def preprocess_logits_for_metrics(output, labels):
     - processed_logits: torch.Tensor, processed logits.
     - labels: torch.Tensor, labels (unchanged).
     """
-    print("Output keys:", output.keys())
-    # Extract logits from the output dictionary
-    logits = output['logit']
+    # Print the type and keys of the 'outputs' value
+    outputs = output['outputs']
+    print("Outputs type:", type(outputs))
+    if isinstance(outputs, dict):
+        print("Outputs keys:", outputs.keys())
+    
+    # Extract logits from the output dictionary using the correct key
+    logits = outputs.get('logits') or outputs.get('predictions')  # Add more keys as needed
+    if logits is None:
+        raise KeyError("Neither 'logits' nor 'predictions' key found in the outputs")
     
     # Ensure logits are in float32 to save memory
     if logits.dtype != torch.float32:
