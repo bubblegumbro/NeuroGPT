@@ -21,7 +21,7 @@ def preprocess_logits_for_metrics(output, labels):
     - labels: torch.Tensor, labels (unchanged).
     """
     # Since output is already a tensor, directly process it
-    logits = output
+    logits = output['outputs']
     
     # Ensure logits are in float32 to save memory
     if logits.dtype != torch.float32:
