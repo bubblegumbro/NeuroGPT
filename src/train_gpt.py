@@ -278,6 +278,7 @@ def make_model(model_config: Dict=None):
         chann_coords = None
         
         encoder = EEGConformer(n_outputs=model_config["num_decoding_classes"], n_chans=20, n_times=model_config['chunk_len'], ch_pos=chann_coords, is_decoding_mode=model_config["ft_only_encoder"])
+        encoder.config.gradient_checkpointing = True
         #calculates the output dimension of the encoder, which is the output of transformer layer.
         model_config["parcellation_dim"] = ((model_config['chunk_len'] - model_config['filter_time_length'] + 1 - model_config['pool_time_length']) // model_config['stride_avg_pool'] + 1) * model_config['n_filters_time']
 
@@ -304,6 +305,7 @@ def make_model(model_config: Dict=None):
         hidden_activation=model_config["hidden_activation"],
         dropout=model_config["dropout"]
     )
+    decoder.config.gradient_checkpointing = True
 
     if model_config["embedding_dim"] != model_config["parcellation_dim"]:
         unembedder = make_unembedder(
