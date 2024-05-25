@@ -32,8 +32,8 @@ def preprocess_logits_for_metrics(logits,labs):
         Original Trainer may have a memory leak. 
         This is a workaround to avoid storing too many tensors that are not needed.
         """
-        print(logits.keys())
-        pred_ids = torch.argmax(logits['output'], dim=-1)
+     
+        pred_ids = torch.argmax(logits['outputs'], dim=-1)
         return pred_ids
     
 class CSVLogCallback(TrainerCallback):
