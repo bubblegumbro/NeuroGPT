@@ -223,6 +223,7 @@ def make_trainer(
         seed=seed,
         fp16=True,
         max_grad_norm=max_grad_norm,
+        predict_with_generate=True,
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
         eval_accumulation_steps=3,
         deepspeed=deepspeed,
@@ -240,8 +241,7 @@ def make_trainer(
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         data_collator=data_collator,
-        compute_metrics=compute_metric,
-        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
+        compute_metrics=compute_metrics,
         optimizers=optimizers,
         is_deepspeed=is_deepspeed
     )
