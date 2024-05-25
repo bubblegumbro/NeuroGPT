@@ -27,12 +27,13 @@ def compute_metric(eval_preds):
     return {'accuracy': 1.0*correct/len(targets)}
 
 
-def preprocess_logits_for_metrics(logits, labels):
+def preprocess_logits_for_metrics(logits,labs):
         """
         Original Trainer may have a memory leak. 
         This is a workaround to avoid storing too many tensors that are not needed.
         """
-        pred_ids = torch.argmax(logits, dim=-1)
+        print(logits.keys())
+        pred_ids = torch.argmax(logits['output'], dim=-1)
         return pred_ids
     
 class CSVLogCallback(TrainerCallback):
