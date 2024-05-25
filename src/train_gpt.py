@@ -305,7 +305,7 @@ def make_model(model_config: Dict=None):
         hidden_activation=model_config["hidden_activation"],
         dropout=model_config["dropout"]
     )
-    decoder.config.gradient_checkpointing = True
+
 
     if model_config["embedding_dim"] != model_config["parcellation_dim"]:
         unembedder = make_unembedder(
