@@ -8,7 +8,33 @@ import torch
 from transformers import TrainingArguments, TrainerCallback
 from trainer.base import Trainer
 
+def compute_metrics_acc(tokenizer):
+        def compute_metric(eval_preds):
+            preds, targets = eval_preds
+            preds= np.where(preds != -100, preds, tokenizer.pad_token_id)
+            targets= np.where(targets != -100, targets, tokenizer.pad_token_id)
+            preds = tokenizer.batch_decode(preds, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+            targets = tokenizer.batch_decode(targets, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+            correct = 0
+            assert len(preds) == len(targets)
+            for idx, pred in enumerate(preds):
+                reference = targets[idx]
+                reference = extract_ans(reference)
+                extract_pred = extract_ans(pred)
+                best_option = extract_pred
+                if reference == best_option and reference != False:
+                    correct +=1 
+            return {'accuracy': 1.0*correct/len(targets)}
+        return compute_metric
 
+def preprocess_logits_for_metrics(logits, labels):
+        """
+        Original Trainer may have a memory leak. 
+        This is a workaround to avoid storing too many tensors that are not needed.
+        """
+        pred_ids = torch.argmax(logits, dim=-1)
+        return pred_ids
+    
 class CSVLogCallback(TrainerCallback):
 
     def __init__(self):
@@ -211,7 +237,8 @@ def make_trainer(
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         data_collator=data_collator,
-        #compute_metrics=compute_metrics,
+        compute_metrics=compute_metric,
+        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         optimizers=optimizers,
         is_deepspeed=is_deepspeed
     )
