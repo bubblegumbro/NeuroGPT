@@ -32,9 +32,9 @@ def preprocess_logits_for_metrics(logits,labs):
         Original Trainer may have a memory leak. 
         This is a workaround to avoid storing too many tensors that are not needed.
         """
-        print(logits['outputs'])
+        print(logits['outputs'].shape)
         if labs: 
-            print(labs)
+            print('labs',labs.shape)
         pred_ids = torch.argmax(logits['outputs'], dim=-1)
         return pred_ids
     
