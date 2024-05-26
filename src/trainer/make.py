@@ -55,7 +55,7 @@ def preprocess_logits_for_metrics(logits, labs=None):
     """
     print("Original logits shape:", logits['outputs'].shape)
     # Reduce dimensionality
-    reduced_logits = simple_pca(logits['outputs'], n_components=1000)  # Reducing to 100 components
+    reduced_logits = simple_pca(logits['outputs'], n_components=34)  # Reducing to 100 components
     print("Reduced logits shape:", reduced_logits.shape)
 
     if labs:
