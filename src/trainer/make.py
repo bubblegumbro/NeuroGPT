@@ -39,45 +39,33 @@ def compute_metric(eval_preds):
         return pred_ids '''
 
 
-def pca_with_explained_variance(data, variance_threshold=0.9):
+import torch
+
+def fixed_pca(data, n_components=100):
     """
-    Perform PCA on the given data, choosing the number of components such that a given
-    threshold of variance is explained.
+    Perform PCA with a fixed number of components to ensure consistent output dimensions.
     """
-    # Flatten data from [batch, sequence_length, features] to [batch*sequence_length, features]
-    flat_data = data.reshape(-1, data.shape[-1])
+    # Assuming data is of shape (batch, sequence_length, features)
+    flat_data = data.reshape(-1, data.shape[-1])  # Flatten the data
 
     # Compute SVD
-    U, S, V = torch.pca_lowrank(flat_data)
-
-    # Calculate explained variance and select components
-    explained_variance = S.pow(2) / (flat_data.size(0) - 1)
-    total_variance = explained_variance.sum()
-    explained_variance_ratio = explained_variance / total_variance
-    cumulative_variance = explained_variance_ratio.cumsum(0)
-    
-    # Find the number of components to meet the variance threshold
-    n_components = (cumulative_variance < variance_threshold).sum().item() + 1
+    U, S, V = torch.pca_lowrank(flat_data, q=n_components)
 
     # Project the data onto the top 'n_components' principal components
-    return torch.matmul(flat_data, V[:, :n_components]).reshape(data.shape[0], data.shape[1], n_components), n_components
+    return torch.matmul(flat_data, V[:, :n_components]).reshape(data.shape[0], data.shape[1], n_components)
 
-def preprocess_logits_for_metrics(logits, labs=None):
+def preprocess_logits_for_metrics(logits, n_components=100):
     """
-    Modifies logits by reducing their dimensionality before selecting the maximum likelihood class.
-    This is to prevent memory overflow and speed up metric calculation by reducing data volume.
+    Reduces dimensionality of logits to manage computational resources better while keeping the output size consistent.
     """
     print("Original logits shape:", logits['outputs'].shape)
     
-    # Reduce dimensionality with PCA based on variance explained
-    reduced_logits, n_components = pca_with_explained_variance(logits['outputs'], variance_threshold=0.95)
-    print(f"Reduced logits shape: {reduced_logits.shape}, Components used: {n_components}")
-
-    if labs:
-        print('Labels shape:', labs.shape)
-
+    reduced_logits = fixed_pca(logits['outputs'], n_components=n_components)
+    print("Reduced logits shape:", reduced_logits.shape)
 
     return reduced_logits
+
+
 
     
 class CSVLogCallback(TrainerCallback):
