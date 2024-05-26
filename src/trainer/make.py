@@ -7,7 +7,7 @@ from sklearn.metrics import accuracy_score
 import torch
 from transformers import TrainingArguments, TrainerCallback
 from trainer.base import Trainer
-
+from torch import nn
 
 def compute_metric(eval_preds):
     preds, targets = eval_preds
@@ -27,7 +27,7 @@ def compute_metric(eval_preds):
     return {'accuracy': 1.0*correct/len(targets)}
 
 
-def preprocess_logits_for_metrics(logits,labs):
+'''def preprocess_logits_for_metrics(logits,labs):
         """
         Original Trainer may have a memory leak. 
         This is a workaround to avoid storing too many tensors that are not needed.
@@ -36,7 +36,36 @@ def preprocess_logits_for_metrics(logits,labs):
         if labs: 
             print('labs',labs.shape)
         pred_ids = torch.argmax(logits['outputs'], dim=-1)
-        return pred_ids
+        return pred_ids '''
+
+
+def simple_pca(data, n_components=10):
+    """
+    A simplified version of PCA implemented with SVD in PyTorch.
+    This is not a true PCA as it doesn't center the data before SVD and should be precomputed if possible.
+    """
+    # Assuming data is of shape (batch, sequence_length, features)
+    u, s, v = torch.pca_lowrank(data, q=n_components)
+    return torch.matmul(data, v[:, :n_components])
+
+def preprocess_logits_for_metrics(logits, labs=None):
+    """
+    Modifies logits by reducing their dimensionality before selecting the maximum likelihood class.
+    This is to prevent memory overflow and speed up metric calculation by reducing data volume.
+    """
+    print("Original logits shape:", logits['outputs'].shape)
+    # Reduce dimensionality
+    reduced_logits = simple_pca(logits['outputs'], n_components=1000)  # Reducing to 100 components
+    print("Reduced logits shape:", reduced_logits.shape)
+
+    if labs:
+        print('Labels shape:', labs.shape)
+
+    # Get the index of the max logit from the reduced dimensions
+  #  pred_ids = torch.argmax(reduced_logits, dim=-1)
+    return reduced_logits
+
+
     
 class CSVLogCallback(TrainerCallback):
 
