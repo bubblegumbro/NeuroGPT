@@ -39,14 +39,28 @@ def compute_metric(eval_preds):
         return pred_ids '''
 
 
-def simple_pca(data, n_components=10):
+def pca_with_explained_variance(data, variance_threshold=0.9):
     """
-    A simplified version of PCA implemented with SVD in PyTorch.
-    This is not a true PCA as it doesn't center the data before SVD and should be precomputed if possible.
+    Perform PCA on the given data, choosing the number of components such that a given
+    threshold of variance is explained.
     """
-    # Assuming data is of shape (batch, sequence_length, features)
-    u, s, v = torch.pca_lowrank(data, q=n_components)
-    return torch.matmul(data, v[:, :n_components])
+    # Flatten data from [batch, sequence_length, features] to [batch*sequence_length, features]
+    flat_data = data.reshape(-1, data.shape[-1])
+
+    # Compute SVD
+    U, S, V = torch.pca_lowrank(flat_data)
+
+    # Calculate explained variance and select components
+    explained_variance = S.pow(2) / (flat_data.size(0) - 1)
+    total_variance = explained_variance.sum()
+    explained_variance_ratio = explained_variance / total_variance
+    cumulative_variance = explained_variance_ratio.cumsum(0)
+    
+    # Find the number of components to meet the variance threshold
+    n_components = (cumulative_variance < variance_threshold).sum().item() + 1
+
+    # Project the data onto the top 'n_components' principal components
+    return torch.matmul(flat_data, V[:, :n_components]).reshape(data.shape[0], data.shape[1], n_components), n_components
 
 def preprocess_logits_for_metrics(logits, labs=None):
     """
@@ -54,17 +68,16 @@ def preprocess_logits_for_metrics(logits, labs=None):
     This is to prevent memory overflow and speed up metric calculation by reducing data volume.
     """
     print("Original logits shape:", logits['outputs'].shape)
-    # Reduce dimensionality
-    reduced_logits = simple_pca(logits['outputs'], n_components=34)  # Reducing to 100 components
-    print("Reduced logits shape:", reduced_logits.shape)
+    
+    # Reduce dimensionality with PCA based on variance explained
+    reduced_logits, n_components = pca_with_explained_variance(logits['outputs'], variance_threshold=0.95)
+    print(f"Reduced logits shape: {reduced_logits.shape}, Components used: {n_components}")
 
     if labs:
         print('Labels shape:', labs.shape)
 
-    # Get the index of the max logit from the reduced dimensions
-  #  pred_ids = torch.argmax(reduced_logits, dim=-1)
-    return reduced_logits
 
+    return reduced_logits
 
     
 class CSVLogCallback(TrainerCallback):
