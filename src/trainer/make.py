@@ -225,7 +225,7 @@ def make_trainer(
         max_grad_norm=max_grad_norm,
         predict_with_generate=True,
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
-        eval_accumulation_steps=3,
+       # eval_accumulation_steps=3,
         deepspeed=deepspeed,
         **kwargs
     )
@@ -241,7 +241,7 @@ def make_trainer(
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         data_collator=data_collator,
-        compute_metrics=compute_metrics,
+    #    compute_metrics=compute_metrics,
         optimizers=optimizers,
         is_deepspeed=is_deepspeed
     )
