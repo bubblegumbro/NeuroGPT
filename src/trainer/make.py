@@ -45,26 +45,31 @@ def fixed_pca(data, n_components=100):
     """
     Perform PCA with a fixed number of components to ensure consistent output dimensions.
     """
+    if data.dim() < 3:
+        raise ValueError("Input data must have at least three dimensions: [batch, sequence_length, features]")
+
     # Flatten the data from [batch, sequence_length, features] to [batch*sequence_length, features]
-    flat_data = data.reshape(-1, data.shape[-1])
+    batch_size, seq_length, features = data.shape
+    flat_data = data.reshape(-1, features)  # This combines batch and sequence_length
 
     # Compute SVD
     U, S, V = torch.pca_lowrank(flat_data, q=n_components)
 
     # Project the data onto the top 'n_components' principal components
     reduced_data = torch.matmul(flat_data, V[:, :n_components])
-    
-    # Check dimensions before reshaping
-    if data.dim() < 3:
-        raise ValueError("Input data must be at least 3-dimensional")
-    
-    return reduced_data.reshape(data.shape[0], data.shape[1], n_components)
 
+    # Ensure the number of components does not exceed the number of features
+    n_components = min(n_components, V.shape[1])
+
+    return reduced_data.reshape(batch_size, seq_length, n_components)
 
 def preprocess_logits_for_metrics(logits, n_components=100):
     """
     Reduces dimensionality of logits to manage computational resources better while keeping the output size consistent.
     """
+    if 'outputs' not in logits:
+        raise KeyError("Expected key 'outputs' in logits dictionary")
+
     print("Original logits shape:", logits['outputs'].shape)
     
     reduced_logits = fixed_pca(logits['outputs'], n_components=n_components)
