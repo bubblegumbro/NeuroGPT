@@ -45,14 +45,21 @@ def fixed_pca(data, n_components=100):
     """
     Perform PCA with a fixed number of components to ensure consistent output dimensions.
     """
-    # Assuming data is of shape (batch, sequence_length, features)
-    flat_data = data.reshape(-1, data.shape[-1])  # Flatten the data
+    # Flatten the data from [batch, sequence_length, features] to [batch*sequence_length, features]
+    flat_data = data.reshape(-1, data.shape[-1])
 
     # Compute SVD
     U, S, V = torch.pca_lowrank(flat_data, q=n_components)
 
     # Project the data onto the top 'n_components' principal components
-    return torch.matmul(flat_data, V[:, :n_components]).reshape(data.shape[0], data.shape[1], n_components)
+    reduced_data = torch.matmul(flat_data, V[:, :n_components])
+    
+    # Check dimensions before reshaping
+    if data.dim() < 3:
+        raise ValueError("Input data must be at least 3-dimensional")
+    
+    return reduced_data.reshape(data.shape[0], data.shape[1], n_components)
+
 
 def preprocess_logits_for_metrics(logits, n_components=100):
     """
