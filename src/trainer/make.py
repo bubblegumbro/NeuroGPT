@@ -204,7 +204,7 @@ def make_trainer(
     fp16: bool = True,
     deepspeed: str = None,
     compute_metrics = None,
-    gradient_accumulation_steps: int = 8,  # Added gradient accumulation
+    gradient_accumulation_steps: int = 4,  # Added gradient accumulation
     **kwargs
     ) -> Trainer:
     """
@@ -266,7 +266,7 @@ def make_trainer(
         fp16=True,
         max_grad_norm=max_grad_norm,
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
-        eval_accumulation_steps=80,
+        eval_accumulation_steps=20,
         deepspeed=deepspeed,
         **kwargs
     )
