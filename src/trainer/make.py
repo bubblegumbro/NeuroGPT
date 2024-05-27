@@ -9,7 +9,7 @@ from transformers import TrainingArguments, TrainerCallback
 from trainer.base import Trainer
 from torch import nn
 
-def compute_metric(eval_preds):
+'''def compute_metric(eval_preds):
     preds, targets = eval_preds
     preds= np.where(preds != -100, preds, tokenizer.pad_token_id)
     targets= np.where(targets != -100, targets, tokenizer.pad_token_id)
@@ -24,7 +24,7 @@ def compute_metric(eval_preds):
         best_option = extract_pred
         if reference == best_option and reference != False:
             correct +=1 
-    return {'accuracy': 1.0*correct/len(targets)}
+    return {'accuracy': 1.0*correct/len(targets)}'''
 
 
 '''def preprocess_logits_for_metrics(logits,labs):
@@ -204,7 +204,7 @@ def make_trainer(
     fp16: bool = True,
     deepspeed: str = None,
     compute_metrics = None,
-    gradient_accumulation_steps: int = 2,  # Added gradient accumulation
+    gradient_accumulation_steps: int = 4,  # Added gradient accumulation
     **kwargs
     ) -> Trainer:
     """
@@ -266,7 +266,7 @@ def make_trainer(
         fp16=True,
         max_grad_norm=max_grad_norm,
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
-        eval_accumulation_steps=1,
+        eval_accumulation_steps=3,
         deepspeed=deepspeed,
         **kwargs
     )
@@ -283,7 +283,7 @@ def make_trainer(
         eval_dataset=validation_dataset,
         data_collator=data_collator,
         compute_metrics=compute_metrics,
-        preprocess_logits_for_metrics=preprocess_logits_for_metrics,
+        #preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         optimizers=optimizers,
         is_deepspeed=is_deepspeed
     )
