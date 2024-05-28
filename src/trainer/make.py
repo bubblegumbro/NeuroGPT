@@ -190,7 +190,7 @@ def make_trainer(
     num_train_epochs: int = 1,
     lr_scheduler_type: str = 'linear',
     warmup_ratio: float = 0.01,
-    evaluation_strategy: str = 'steps',
+    evaluation_strategy: str = 'epoch',
     #evaluation_strategy: str = 'no',
     prediction_loss_only: bool = 'False',
     loss_only: bool = 'True',
