@@ -191,7 +191,7 @@ def make_trainer(
     lr_scheduler_type: str = 'linear',
     warmup_ratio: float = 0.01,
     evaluation_strategy: str = 'steps',
-    prediction_loss_only: bool = False,
+    prediction_loss_only: bool = 'True',
     logging_strategy: str = 'steps',
     save_strategy: str = 'steps',
     save_total_limit: int = 5,
@@ -262,11 +262,12 @@ def make_trainer(
         logging_steps=logging_steps,
         evaluation_strategy=evaluation_strategy,
         eval_steps=eval_steps if eval_steps is not None else logging_steps,
+        prediction_loss_only =True,
         seed=seed,
         fp16=True,
         max_grad_norm=max_grad_norm,
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
-        eval_accumulation_steps=4000,
+        eval_accumulation_steps=1,
         deepspeed=deepspeed,
         **kwargs
     )
