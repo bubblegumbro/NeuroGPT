@@ -262,7 +262,6 @@ def make_trainer(
         logging_steps=logging_steps,
         evaluation_strategy=evaluation_strategy,
         eval_steps=eval_steps if eval_steps is not None else logging_steps,
-        prediction_loss_only =True,
         seed=seed,
         fp16=True,
         max_grad_norm=max_grad_norm,
