@@ -63,11 +63,13 @@ class ProfCallback(TrainerCallback):
         self.profiler.start()
 
     def on_step_end(self, args, state, control, **kwargs):
-        self.profiler.step()
+        if self.profiler:
+            self.profiler.step()
 
     def on_train_end(self, args, state, control, **kwargs):
-        self.profiler.stop()
-
+        if self.profiler:
+            self.profiler.stop()
+            self.profiler = None  # Ensure profiler is released properly
 
 
 
