@@ -248,7 +248,7 @@ def make_trainer(
     fp16: bool = True,
     deepspeed: str = None,
     compute_metrics = None,
-    gradient_accumulation_steps: int = 0,  # Added gradient accumulation
+   # gradient_accumulation_steps: int = 0,  # Added gradient accumulation
     **kwargs
     ) -> Trainer:
     """
@@ -308,7 +308,7 @@ def make_trainer(
         seed=seed,
         fp16=fp16,
         max_grad_norm=max_grad_norm,
-        gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
+       # gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
         eval_accumulation_steps=1,
         deepspeed=deepspeed,
         report_to="none",  # Disable WANDB
