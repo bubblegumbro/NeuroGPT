@@ -236,9 +236,6 @@ def make_trainer(
     lr_scheduler_type: str = 'linear',
     warmup_ratio: float = 0.01,
     evaluation_strategy: str = 'steps',
-   # evaluation_strategy: str = 'no',
-    prediction_loss_only: bool = 'False',
-    #loss_only: bool = 'True',
     logging_strategy: str = 'steps',
     save_strategy: str = 'steps',
     save_total_limit: int = 5,
@@ -286,7 +283,6 @@ def make_trainer(
         do_train=do_train,
         do_eval=do_eval,
         overwrite_output_dir=overwrite_output_dir,
-        prediction_loss_only=prediction_loss_only,
         per_device_train_batch_size=per_device_train_batch_size,
         per_device_eval_batch_size=per_device_eval_batch_size,
         dataloader_num_workers=dataloader_num_workers,
@@ -310,11 +306,12 @@ def make_trainer(
         evaluation_strategy=evaluation_strategy,
         eval_steps=eval_steps if eval_steps is not None else logging_steps,
         seed=seed,
-        fp16=True,
+        fp16=fp16,
         max_grad_norm=max_grad_norm,
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
         eval_accumulation_steps=1,
         deepspeed=deepspeed,
+        report_to="none",  # Disable WANDB
         **kwargs
     )
 
@@ -330,21 +327,10 @@ def make_trainer(
         eval_dataset=validation_dataset,
         data_collator=data_collator,
         compute_metrics=compute_metrics,
-        #preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         optimizers=optimizers,
         is_deepspeed=is_deepspeed
     )
 
-    
-    prof = profile(
-        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-        schedule=torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1),
-        on_trace_ready=torch.profiler.tensorboard_trace_handler(output_dir),
-        profile_memory=True,
-        with_stack=True,
-        record_shapes=True
-       )
-     
-    trainer.add_callback(ProfCallback(prof=prof, log_dir=output_dir))
+    trainer.add_callback(ProfCallback(log_dir=output_dir))
 
     return trainer
