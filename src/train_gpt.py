@@ -34,7 +34,7 @@ from batcher.downstream_dataset import MotorImageryDataset
 import torch
 import os
 import argparse
-
+from torch.profiler import profile, record_function, ProfilerActivity
 from typing import Dict
 import json
 from datetime import datetime
@@ -232,7 +232,22 @@ def train(config: Dict=None) -> Trainer:
     if config['do_train']:
         print("config[resume_from]", config["resume_from"])
         print("config[log_dir]", config["log_dir"])
-        trainer.train(resume_from_checkpoint=config["resume_from"])
+        with profile(activities=[
+            ProfilerActivity.CPU, 
+            ProfilerActivity.CUDA], 
+            schedule=torch.profiler.schedule(
+                wait=1,
+                warmup=1,
+                active=3,
+                repeat=2),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler(config["log_dir"]),
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True
+        ) as prof:
+            with record_function("model_inference"):
+                trainer.train(resume_from_checkpoint=config["resume_from"])
+            prof.step()
         trainer.save_model(
             os.path.join(
                 config["log_dir"],
