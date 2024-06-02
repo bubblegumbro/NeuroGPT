@@ -14,7 +14,6 @@ import os
 import torch.multiprocessing as mp
 mp.set_start_method('spawn', force=True)
 
-
 from torch import nn
 
 '''def compute_metric(eval_preds):
@@ -50,35 +49,21 @@ from torch import nn
 class ProfCallback(TrainerCallback):
     def __init__(self, log_dir):
         self.log_dir = log_dir
-        self.csv_file = os.path.join(log_dir, 'profiler_log.csv')
-        self.header_written = False
+        self.profiler = None
+
+    def on_train_begin(self, args, state, control, **kwargs):
         self.profiler = profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-            schedule=torch.profiler.schedule(wait=1, warmup=1, active=1, repeat=1),
-            on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir),
+            schedule=torch.profiler.schedule(wait=1, warmup=1, active=3, repeat=1),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler(self.log_dir),
             profile_memory=True,
             with_stack=True,
             record_shapes=True
         )
-
-    def on_train_begin(self, args, state, control, **kwargs):
         self.profiler.start()
 
     def on_step_end(self, args, state, control, **kwargs):
         self.profiler.step()
-
-        # Log profiling data to CSV
-        key_averages = self.profiler.key_averages().table(row_limit=10).splitlines()
-        header = key_averages[0]
-        data = key_averages[1:]
-
-        with open(self.csv_file, 'a', newline='') as f:
-            writer = csv.writer(f)
-            if not self.header_written:
-                writer.writerow(['global_step'] + header.split())
-                self.header_written = True
-            for line in data:
-                writer.writerow([state.global_step] + line.split())
 
     def on_train_end(self, args, state, control, **kwargs):
         self.profiler.stop()
