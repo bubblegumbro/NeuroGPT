@@ -232,18 +232,20 @@ def train(config: Dict=None) -> Trainer:
     if config['do_train']:
         print("config[resume_from]", config["resume_from"])
         print("config[log_dir]", config["log_dir"])
-        with profile(activities=[
-            ProfilerActivity.CPU, 
-            ProfilerActivity.CUDA], 
+        with profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
             schedule=torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1),
-            on_trace_ready=torch.profiler.tensorboard_trace_handler(config["log_dir"]),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir),
             record_shapes=True,
             profile_memory=True,
             with_stack=True
         ) as prof:
-            with record_function("model_inference"):
-                trainer.train(resume_from_checkpoint=config["resume_from"])
-            prof.step()
+            trainer.train(resume_from_checkpoint=config["resume_from"])
+            # Step the profiler after each batch
+            for step in range(1000):
+                with record_function("model_inference"):
+                    trainer.training_step(trainer.model, next(iter(trainer.train_dataloader)))
+                prof.step()
         trainer.save_model(
             os.path.join(
                 config["log_dir"],
