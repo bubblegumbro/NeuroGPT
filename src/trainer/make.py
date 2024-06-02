@@ -48,17 +48,27 @@ from torch import nn
 
 
 class ProfCallback(TrainerCallback):
-    def __init__(self, prof, log_dir):
-        self.prof = prof
+    def __init__(self, log_dir):
         self.log_dir = log_dir
         self.csv_file = os.path.join(log_dir, 'profiler_log.csv')
         self.header_written = False
+        self.profiler = profile(
+            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+            schedule=torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir),
+            profile_memory=True,
+            with_stack=True,
+            record_shapes=True
+        )
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        self.profiler.start()
 
     def on_step_end(self, args, state, control, **kwargs):
-        self.prof.step()
+        self.profiler.step()
 
         # Log profiling data to CSV
-        key_averages = self.prof.key_averages().table(row_limit=10).splitlines()
+        key_averages = self.profiler.key_averages().table(row_limit=10).splitlines()
         header = key_averages[0]
         data = key_averages[1:]
 
@@ -69,6 +79,10 @@ class ProfCallback(TrainerCallback):
                 self.header_written = True
             for line in data:
                 writer.writerow([state.global_step] + line.split())
+
+    def on_train_end(self, args, state, control, **kwargs):
+        self.profiler.stop()
+
 
 
 
