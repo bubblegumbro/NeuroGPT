@@ -301,7 +301,7 @@ def make_trainer(
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
         eval_accumulation_steps=1,
         deepspeed=deepspeed,
-        report_to="none"
+        report_to=None
         **kwargs
     )
 
