@@ -69,7 +69,7 @@ class ProfCallback(TrainerCallback):
     def on_train_end(self, args, state, control, **kwargs):
         if self.profiler:
             self.profiler.stop()
-            self.profiler = None  # Ensure profiler is released properly
+            self.profiler = None  #  profiler is released properly
 
 
 
