@@ -235,7 +235,7 @@ def train(config: Dict=None) -> Trainer:
         with profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], 
             schedule=torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1),
-            on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler(config["log_dir"]),
             record_shapes=True,
             profile_memory=True,
             with_stack=True
