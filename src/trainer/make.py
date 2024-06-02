@@ -54,7 +54,7 @@ class ProfCallback(TrainerCallback):
         self.header_written = False
         self.profiler = profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-            schedule=torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1),
+            schedule=torch.profiler.schedule(wait=1, warmup=1, active=1, repeat=1),
             on_trace_ready=torch.profiler.tensorboard_trace_handler(log_dir),
             profile_memory=True,
             with_stack=True,
@@ -86,9 +86,9 @@ class ProfCallback(TrainerCallback):
 
 
 
-def fixed_pca(data, n_components=100):
+'''def fixed_pca(data, n_components=100):
     """
-    Perform PCA with a fixed number of components to ensure consistent output dimensions.
+    Perform PCA with a fixed number of components to ensure consistent output dimensions. (Not working)
     """
     if data.dim() < 3:
         raise ValueError("Input data must have at least three dimensions: [batch, sequence_length, features]")
@@ -106,9 +106,9 @@ def fixed_pca(data, n_components=100):
     # Ensure the number of components does not exceed the number of features
     n_components = min(n_components, V.shape[1])
 
-    return reduced_data.reshape(batch_size, seq_length, n_components)
+    return reduced_data.reshape(batch_size, seq_length, n_components)'''
 
-def preprocess_logits_for_metrics(logits, n_components=100):
+'''def preprocess_logits_for_metrics(logits, n_components=100):
     """
     Reduces dimensionality of logits to manage computational resources better while keeping the output size consistent.
     """
@@ -120,7 +120,7 @@ def preprocess_logits_for_metrics(logits, n_components=100):
     reduced_logits = fixed_pca(logits['outputs'], n_components=n_components)
     print("Reduced logits shape:", reduced_logits.shape)
 
-    return reduced_logits
+    return reduced_logits '''
 
 
 
