@@ -7,6 +7,11 @@ from sklearn.metrics import accuracy_score
 import torch
 from transformers import TrainingArguments, TrainerCallback
 from trainer.base import Trainer
+import torch
+from torch.profiler import profile, record_function, ProfilerActivity
+import csv
+import os
+
 from torch import nn
 
 '''def compute_metric(eval_preds):
@@ -39,7 +44,20 @@ from torch import nn
         return pred_ids '''
 
 
-import torch
+class ProfCallback(TrainerCallback):
+    def __init__(self, prof, log_dir):
+        self.prof = prof
+        self.log_dir = log_dir
+        self.csv_file = os.path.join(log_dir, 'profiler_log.csv')
+
+    def on_step_end(self, args, state, control, **kwargs):
+        self.prof.step()
+
+        # Log profiling data to CSV
+        with open(self.csv_file, 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow([state.global_step, *self.prof.key_averages().table(row_limit=10).splitlines()])
+
 
 def fixed_pca(data, n_components=100):
     """
@@ -290,6 +308,16 @@ def make_trainer(
         is_deepspeed=is_deepspeed
     )
 
-    trainer.add_callback(CSVLogCallback)
+    
+    prof = profile(
+        activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+        schedule=torch.profiler.schedule(skip_first=1, wait=0, warmup=0, active=1, repeat=1),
+        on_trace_ready=torch.profiler.tensorboard_trace_handler(output_dir),
+        profile_memory=True,
+        with_stack=True,
+        record_shapes=True
+    )
+
+    trainer.add_callback(ProfCallback(prof=prof, log_dir=output_dir))
 
     return trainer
