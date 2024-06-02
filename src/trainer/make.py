@@ -11,6 +11,9 @@ import torch
 from torch.profiler import profile, record_function, ProfilerActivity
 import csv
 import os
+import torch.multiprocessing as mp
+mp.set_start_method('spawn', force=True)
+
 
 from torch import nn
 
@@ -49,14 +52,24 @@ class ProfCallback(TrainerCallback):
         self.prof = prof
         self.log_dir = log_dir
         self.csv_file = os.path.join(log_dir, 'profiler_log.csv')
+        self.header_written = False
 
     def on_step_end(self, args, state, control, **kwargs):
         self.prof.step()
 
         # Log profiling data to CSV
-        with open(self.csv_file, 'a') as f:
+        key_averages = self.prof.key_averages().table(row_limit=10).splitlines()
+        header = key_averages[0]
+        data = key_averages[1:]
+
+        with open(self.csv_file, 'a', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow([state.global_step, *self.prof.key_averages().table(row_limit=10).splitlines()])
+            if not self.header_written:
+                writer.writerow(['global_step'] + header.split())
+                self.header_written = True
+            for line in data:
+                writer.writerow([state.global_step] + line.split())
+
 
 
 def fixed_pca(data, n_components=100):
@@ -288,6 +301,7 @@ def make_trainer(
         gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
         eval_accumulation_steps=1,
         deepspeed=deepspeed,
+        report_to="none"
         **kwargs
     )
 
@@ -311,13 +325,13 @@ def make_trainer(
     
     prof = profile(
         activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-        schedule=torch.profiler.schedule(skip_first=1, wait=0, warmup=0, active=1, repeat=1),
+        schedule=torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1),
         on_trace_ready=torch.profiler.tensorboard_trace_handler(output_dir),
         profile_memory=True,
         with_stack=True,
         record_shapes=True
-    )
-
+       )
+     
     trainer.add_callback(ProfCallback(prof=prof, log_dir=output_dir))
 
     return trainer
