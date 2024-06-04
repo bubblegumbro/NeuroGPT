@@ -288,8 +288,8 @@ def make_trainer(
         save_total_limit=save_total_limit,
         greater_is_better=greater_is_better,
         save_steps=save_steps,
-        prediction_loss_only=True
-        ignore_keys=True
+        prediction_loss_only=True,
+        ignore_keys=True,
         logging_strategy=logging_strategy,
         logging_first_step=logging_first_step,
         logging_steps=logging_steps,
