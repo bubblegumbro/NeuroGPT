@@ -267,6 +267,7 @@ def make_trainer(
     trainer_args = TrainingArguments(
         output_dir=output_dir,
         run_name=run_name,
+        
         do_train=do_train,
         do_eval=do_eval,
         overwrite_output_dir=overwrite_output_dir,
@@ -287,6 +288,8 @@ def make_trainer(
         save_total_limit=save_total_limit,
         greater_is_better=greater_is_better,
         save_steps=save_steps,
+        prediction_loss_only=True
+        ignore_keys=True
         logging_strategy=logging_strategy,
         logging_first_step=logging_first_step,
         logging_steps=logging_steps,
