@@ -299,7 +299,7 @@ def make_trainer(
         fp16=fp16,
         max_grad_norm=max_grad_norm,
        # gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
-        eval_accumulation_steps=1,
+        eval_accumulation_steps=25,
         deepspeed=deepspeed,
         report_to="none",  # Disable WANDB
         **kwargs
