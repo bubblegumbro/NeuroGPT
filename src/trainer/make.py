@@ -110,7 +110,8 @@ class ProfCallback(TrainerCallback):
     return reduced_logits '''
 
 
-
+def compute_metric(eval_preds):
+    return 1
     
 class CSVLogCallback(TrainerCallback):
 
@@ -315,7 +316,7 @@ def make_trainer(
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         data_collator=data_collator,
-        compute_metrics=compute_metrics,
+        compute_metrics=compute_metric,
         optimizers=optimizers,
         is_deepspeed=is_deepspeed
     )
