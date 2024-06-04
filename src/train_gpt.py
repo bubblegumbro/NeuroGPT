@@ -165,22 +165,22 @@ def train(config: Dict=None) -> Trainer:
     else:
         root_path = config["train_data_path"]
         files = read_threshold_sub('../inputs/sub_list2.csv', lower_bound=1000, upper_bound=1000000)# time len
-        train_len = int(len(files) * 0.75)
+        train_len = int(len(files) -1000)
         
         print("\ntotal number of files: ", len(files))
-        print("\ntrain_length is: ", train_len)
-        print("\nfirst file name: ", files[0])
+        #rint("\ntrain_length is: ", train_len)
+        #print("\nfirst file name: ", files[0])
      
         random.shuffle(files)
-        print("\nfirst file name after shuffling: ", files[0])
+       # print("\nfirst file name after shuffling: ", files[0])
         
-        train_dataset = EEGDataset(files[:train_len], sample_keys=[
+        train_dataset = EEGDataset(files[1000:], sample_keys=[
             'inputs',
             'attention_mask'
         ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
-        print(f"\nNumber of training files to be loaded: {len(files)}\n")
+        #print(f"\nNumber of training files to be loaded: {len(files)}\n")
 
-        validation_dataset = EEGDataset(files[train_len:], sample_keys=[
+        validation_dataset = EEGDataset(files[:1000], sample_keys=[
             'inputs',
             'attention_mask'
         ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
