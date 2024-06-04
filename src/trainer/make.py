@@ -12,7 +12,7 @@ from torch.profiler import profile, record_function, ProfilerActivity
 import csv
 import os
 import torch.multiprocessing as mp
-mp.set_start_method('spawn', force=True)
+#mp.set_start_method('spawn', force=True)
 
 from torch import nn
 
@@ -299,7 +299,7 @@ def make_trainer(
         fp16=fp16,
         max_grad_norm=max_grad_norm,
        # gradient_accumulation_steps=gradient_accumulation_steps,  # Added gradient accumulation
-        eval_accumulation_steps=59,
+        eval_accumulation_steps=3,
         deepspeed=deepspeed,
         report_to="none",  # Disable WANDB
         **kwargs
@@ -316,11 +316,11 @@ def make_trainer(
         train_dataset=train_dataset,
         eval_dataset=validation_dataset,
         data_collator=data_collator,
-        compute_metrics=compute_metric,
+        compute_metrics=compute_metrics,
         optimizers=optimizers,
         is_deepspeed=is_deepspeed
     )
 
-    trainer.add_callback(ProfCallback(log_dir=output_dir))
+    trainer.add_callback(CSVLogCallback)
 
     return trainer
