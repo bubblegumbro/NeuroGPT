@@ -1,10 +1,9 @@
 #!/usr/bin/env python3 
-
 import torch
 from typing import Dict
 import warnings
-
-
+from safetensors.torch import load_model
+import os 
 class Model(torch.nn.Module):
     """
     Create Model object from embedder, decoder,
@@ -49,40 +48,23 @@ class Model(torch.nn.Module):
         self.is_decoding_mode = False
         self.ft_only_encoder = False
 
-    def from_pretrained(
-        self,
-        pretrained_path: str
-        ) -> None:
-        """Load pretrained model from pretrained_path.
-        Needs to point to pytorch_model.bin file.
-        """
-        print(
-            f'Loading pretrained model from {pretrained_path}'
-        )
-
-        if next(self.parameters()).is_cuda:
-            pretrained = torch.load(pretrained_path)
-
+    def from_pretrained(self, pretrained_path: str) -> None:
+        """Load pretrained model from a .pt file or a .safetensors file."""
+        print(f'Loading pretrained model from {pretrained_path}')
+        
+        file_ext = os.path.splitext(pretrained_path)[1]
+        
+        if file_ext == '.pt' or file_ext == '.bin':
+            device = 'cuda' if next(self.parameters()).is_cuda else 'cpu'
+            pretrained = torch.load(pretrained_path, map_location=torch.device(device))
+        elif file_ext == '.safetensors':
+            load_model(self, pretrained_path,strict=False)  # Corrected to pass the instance itself
         else:
-            pretrained = torch.load(pretrained_path, map_location=torch.device('cpu'))
-        
-        for k in self.state_dict():
-            
-            if k in pretrained:
-                assert pretrained[k].shape == self.state_dict()[k].shape,\
-                    f'{k} shape mismatch between pretrained model and current model '+\
-                    f'{pretrained[k].shape} vs {self.state_dict()[k].shape}'
-        
-        for k in pretrained:     
-            if k not in self.state_dict():
-                warnings.warn(
-                    f'Warning: /!\ Skipping {k} from {pretrained_path} '\
-                    'because it is not part of the current model'
-                )
+            raise ValueError("Unsupported file format. Expected '.pt' or '.safetensors'.")
 
-        # we set strict=False, because we can be sure
-        # that all relevant keys are in pretrained
-        self.load_state_dict(pretrained, strict=False)
+        print('Pretrained model loaded successfully.')
+
+        
         
     def switch_ft_mode(self, ft_encoder_only=False):
         self.ft_only_encoder = ft_encoder_only

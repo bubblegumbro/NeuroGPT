@@ -173,6 +173,10 @@ class BaseEmbedder(torch.nn.Module):
         labels,
         **kwargs
         ) -> Dict[str, torch.tensor]:
+        # print('Labels Shape:',labels.shape)
+        # Assuming 'labels' is your tensor of labels with shape [2, 1]
+        labels = labels.squeeze(1)
+        # print('Labels Shape AFter:',labels.shape)
         # pdb.set_trace()
         return {
             'decoding_loss': self.xe_loss(

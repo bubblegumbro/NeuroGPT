@@ -30,11 +30,11 @@ src/model: Build full model from components (ie., embedder,
 """
 import gc
 
-from batcher.downstream_dataset import MotorImageryDataset
+from batcher.downstream_dataset import EEGDatasetCls
 import torch
 import os
 import argparse
-from torch.profiler import profile, record_function, ProfilerActivity
+
 from typing import Dict
 import json
 from datetime import datetime
@@ -64,210 +64,218 @@ current_time = datetime.now()
 print("\nCurrent Time and Date:\n", current_time)
 print("\nStarting at ", current_time.strftime("%H:%M:%S"))
 
+
 def train(config: Dict=None) -> Trainer:
     """Model training according to config.
-        -> see get_args() below for all command 
-        line arguments.
+        -> see get_args() below for all command line arguments.
     """
     
     if config is None:
         config = get_config()
 
     if config['do_train']:
-        os.makedirs(
-            config["log_dir"],
-            exist_ok=True
-        )
+        os.makedirs(config["log_dir"], exist_ok=True)
         resume_path = str(config["resume_from"]) if config["resume_from"] is not None else None
         
         if resume_path is not None:
-            config_filepath = os.path.join(
-                config["resume_from"],
-                'train_config.json'
-            )
+            config_filepath = os.path.join(config["resume_from"], 'train_config.json')
 
             if os.path.isfile(config_filepath):
-                print(
-                    f'Loading training config from {config_filepath}'
-                )
-
+                print(f'Loading training config from {config_filepath}')
                 with open(config_filepath, 'r') as f:
                     config = json.load(f)
-
             else:
-
                 with open(config_filepath, 'w') as f:
                     json.dump(config, f, indent=2)
             
             checkpoints = [
                 int(p.split('checkpoint-')[1])
                 for p in os.listdir(resume_path)
-                if 'checkpoint-' in p
-                and os.path.isdir(os.path.join(resume_path, p))
+                if 'checkpoint-' in p and os.path.isdir(os.path.join(resume_path, p))
             ]
             last_checkpoint = max(checkpoints)
-            print(
-                f'Resuming training from checkpoint-{last_checkpoint} in {resume_path}'
-            )
-            config["resume_from"] = os.path.join(
-                resume_path,
-                f'checkpoint-{last_checkpoint}'
-            )
-
+            print(f'Resuming training from checkpoint-{last_checkpoint} in {resume_path}')
+            config["resume_from"] = os.path.join(resume_path, f'checkpoint-{last_checkpoint}')
         else:
-            config_filepath = os.path.join(
-                config["log_dir"],
-                'train_config.json'
-            )
-            
+            config_filepath = os.path.join(config["log_dir"], 'train_config.json')
             with open(config_filepath, 'w') as f:
                 json.dump(config, f, indent=2)
-
             config["resume_from"] = None
 
-    assert config["training_style"] in {
-        'CSM',
-        'CSM_causal',
-        'decoding'
-    }, f'{config["training_style"]} is not supported.'
-    
-    assert config["architecture"] in {
-        'GPT',
-        'PretrainedGPT2'
-    }, f'{config["architecture"]} is not supported.'
+    assert config["training_style"] in {'CSM', 'CSM_causal', 'decoding'}, f'{config["training_style"]} is not supported.'
+    assert config["architecture"] in {'GPT', 'PretrainedGPT2'}, f'{config["architecture"]} is not supported.'
     
     if config['set_seed']:
         random.seed(config["seed"])
         manual_seed(config["seed"])
 
-    #handles the input part, which are the output from encoder.
     if config["training_style"] == 'decoding':
         downstream_path = config["dst_data_path"]
-      
-        train_folds, test_folds = cv_split_bci(sorted(os.listdir(downstream_path))[:18])
-        train_files = train_folds[config['fold_i']]
-        test_files = test_folds[config['fold_i']]
+        all_data = sorted(os.listdir(downstream_path))
+        if config['kfold'] is False:
+            k_folds = 1  # No k-fold cross-validation, so we just do one iteration
+        elif config['kfold'] is None:
+            k_folds = len(all_data)
+        else:
+            k_folds = config['kfold']
 
-        train_dataset = MotorImageryDataset(train_files, sample_keys=[
-                'inputs',
-                'attention_mask'
-            ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=downstream_path, gpt_only= not config["use_encoder"])
-        # pdb.set_trace()
-        
-        test_dataset = MotorImageryDataset(test_files, sample_keys=[
-                'inputs',
-                'attention_mask'
-            ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=downstream_path, gpt_only= not config["use_encoder"])
-       
-        validation_dataset = test_dataset
-        test_dataset = train_dataset
-        
+        val_results = []
+        trn_results = []
+
+        for i in range(k_folds):
+            if config['kfold'] is None:
+                train_files = all_data[:i] + all_data[i+1:]
+                val_files = [all_data[i]]
+            elif config['kfold'] is False:
+                    train_files = all_data  #all_data[:int(0.75 * len(all_data))]
+                    val_files = all_data  #all_data[int(0.75 * len(all_data)):]
+
+            else:
+                fold_size = len(all_data) // k_folds
+                val_files = all_data[i*fold_size:(i+1)*fold_size]
+                train_files = all_data[:i*fold_size] + all_data[(i+1)*fold_size:]
+
+            print('downstream_path : ',downstream_path)
+            print('Train files : ',train_files)
+            print('Val_files: ',val_files)
+            train_dataset = EEGDatasetCls(folder_path=downstream_path, files=train_files)
+            validation_dataset = EEGDatasetCls(folder_path=downstream_path, files=val_files)
+
+            trainer = make_trainer(
+                model_init=lambda: make_model(config),
+                training_style=config["training_style"],
+                run_name=config["run_name"],
+                output_dir=config["log_dir"],
+                train_dataset=train_dataset,
+                validation_dataset=validation_dataset,
+                per_device_train_batch_size=config["per_device_training_batch_size"],
+                per_device_eval_batch_size=config["per_device_validation_batch_size"],
+                dataloader_num_workers=config["num_workers"],
+                optim=config["optim"],
+                learning_rate=config["learning_rate"],
+                weight_decay=config["weight_decay"],
+                adam_beta1=config["adam_beta_1"],
+                adam_beta2=config["adam_beta_2"],
+                adam_epsilon=config["adam_epsilon"],
+                max_grad_norm=config["max_grad_norm"],
+                lr_scheduler_type=config["lr_scheduler"],
+                warmup_ratio=config["warmup_ratio"],
+                max_steps=config["training_steps"],
+                save_steps=config["log_every_n_steps"],
+                logging_steps=config["log_every_n_steps"],
+                eval_steps=config["eval_every_n_steps"],
+                seed=config["seed"] if config['set_seed'] else np.random.choice(range(1, 100000)),
+                fp16=config["fp16"],
+                deepspeed=config["deepspeed"],
+            )
+
+            if config['do_train']:
+                trainer.train(resume_from_checkpoint=config["resume_from"])
+                trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
+
+            val_prediction = trainer.predict(validation_dataset)
+            pd.DataFrame(val_prediction.metrics, index=[0]).to_csv(
+                os.path.join(config["log_dir"], f'val_metrics_fold_{i}.csv'), index=False)
+            np.save(os.path.join(config["log_dir"], f'val_predictions_fold_{i}.npy'), val_prediction.predictions)
+            np.save(os.path.join(config["log_dir"], f'val_label_ids_fold_{i}.npy'), val_prediction.label_ids)
+
+            trn_results.append(trainer.state.log_history)
+            val_results.append(val_prediction.metrics)
+
+        # Calculate and print cross-validation scores
+        if k_folds > 1:
+            avg_metrics = {}
+            for metric in val_results[0]:
+                metric_values = [fold[metric] for fold in val_results]
+                avg_metrics[metric] = {
+                    'mean': np.mean(metric_values),
+                    'std': np.std(metric_values)
+                }
+
+            print("\nCross-Validation Scores:")
+            for metric, values in avg_metrics.items():
+                print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
+
+        return trn_results, val_results
+
     else:
+        # Handling for CSM or CSM_causal
         root_path = config["train_data_path"]
-        files = read_threshold_sub('../inputs/sub_list2.csv', lower_bound=1000, upper_bound=1000000)# time len
-        train_len = int(len(files) -1000)
-        
-        print("\ntotal number of files: ", len(files))
-        #rint("\ntrain_length is: ", train_len)
-        #print("\nfirst file name: ", files[0])
-     
+        files = read_threshold_sub('../inputs/sub_list2.csv', lower_bound=1000, upper_bound=1000000)
         random.shuffle(files)
-       # print("\nfirst file name after shuffling: ", files[0])
-        
+        #train_len = int(len(files) * 0.75)
         train_dataset = EEGDataset(files[1000:], sample_keys=[
             'inputs',
             'attention_mask'
         ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
-        #print(f"\nNumber of training files to be loaded: {len(files)}\n")
-
         validation_dataset = EEGDataset(files[:1000], sample_keys=[
             'inputs',
             'attention_mask'
         ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
-
         test_dataset = None
 
+        trainer = make_trainer(
+            model_init=lambda: make_model(config),
+            training_style=config["training_style"],
+            run_name=config["run_name"],
+            output_dir=config["log_dir"],
+            train_dataset=train_dataset,
+            validation_dataset=validation_dataset,
+            per_device_train_batch_size=config["per_device_training_batch_size"],
+            per_device_eval_batch_size=config["per_device_validation_batch_size"],
+            dataloader_num_workers=config["num_workers"],
+            optim=config["optim"],
+            learning_rate=config["learning_rate"],
+            weight_decay=config["weight_decay"],
+            adam_beta1=config["adam_beta_1"],
+            adam_beta2=config["adam_beta_2"],
+            adam_epsilon=config["adam_epsilon"],
+            max_grad_norm=config["max_grad_norm"],
+            lr_scheduler_type=config["lr_scheduler"],
+            warmup_ratio=config["warmup_ratio"],
+            max_steps=config["training_steps"],
+            save_steps=config["log_every_n_steps"],
+            logging_steps=config["log_every_n_steps"],
+            eval_steps=config["eval_every_n_steps"],
+            seed=config["seed"] if config['set_seed'] else np.random.choice(range(1, 100000)),
+            fp16=config["fp16"],
+            deepspeed=config["deepspeed"],
+        )
 
-    def model_init(params: Dict=None):
-        model_config = dict(config)
-        if params is not None:
-            model_config |= params
-
-        return make_model(model_config)
-
-    if config["training_style"] == "decoding":
-        model_save_steps = config["training_steps"]*2
-    else:
-        model_save_steps = config["log_every_n_steps"]
-
-    trainer = make_trainer(
-        model_init=model_init,
-        training_style=config["training_style"],
-        run_name=config["run_name"],
-        output_dir=config["log_dir"],
-        train_dataset=train_dataset,
-        validation_dataset=validation_dataset,
-        per_device_train_batch_size=config["per_device_training_batch_size"],
-        per_device_eval_batch_size=config["per_device_validation_batch_size"],
-        dataloader_num_workers=config["num_workers"],
-        optim=config["optim"],
-        learning_rate=config["learning_rate"],
-        weight_decay=config["weight_decay"],
-        adam_beta1=config["adam_beta_1"],
-        adam_beta2=config["adam_beta_1"],
-        adam_epsilon=config["adam_epsilon"],
-        max_grad_norm=config["max_grad_norm"],
-        lr_scheduler_type=config["lr_scheduler"],
-        warmup_ratio=config["warmup_ratio"],
-        max_steps=config["training_steps"],
-        # num_train_epochs=5,
-        save_steps=model_save_steps,
-        logging_steps=config["log_every_n_steps"],
-        eval_steps=config["eval_every_n_steps"],
-        seed=config["seed"] if config['set_seed'] else np.random.choice(range(1, 100000)),
-        fp16=config["fp16"],
-        deepspeed=config["deepspeed"],
-    )
-
-    if config['do_train']:
-        print("config[resume_from]", config["resume_from"])
-        print("config[log_dir]", config["log_dir"])
-        trainer.train(resume_from_checkpoint=config["resume_from"])
-        trainer.save_model(
-            os.path.join(
-                config["log_dir"],
-                'model_final'
+        if config['do_train']:
+            trainer.train(resume_from_checkpoint=config["resume_from"])
+            trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
+        
+        if test_dataset is not None:
+            test_prediction = trainer.predict(test_dataset)
+            pd.DataFrame(
+                test_prediction.metrics,
+                index=[0]
+            ).to_csv(
+                os.path.join(
+                    config["log_dir"],
+                    'test_metrics.csv'
+                ),
+                index=False
             )
-        )
+            np.save(
+                os.path.join(
+                    config["log_dir"],
+                    'test_predictions.npy'
+                ),
+                test_prediction.predictions
+            )
+            np.save(
+                os.path.join(
+                    config["log_dir"],
+                    'test_label_ids.npy'
+                ),
+                test_prediction.label_ids
+            )
 
-    if test_dataset is not None:
-        test_prediction = trainer.predict(test_dataset)
-        pd.DataFrame(
-            test_prediction.metrics,
-            index=[0]
-        ).to_csv(
-            os.path.join(
-                config["log_dir"],
-                'test_metrics.csv'
-            ),
-            index=False
-        )
-        np.save(
-            os.path.join(
-                config["log_dir"],
-                'test_predictions.npy'
-            ),
-            test_prediction.predictions
-        )
-        np.save(
-            os.path.join(
-                config["log_dir"],
-                'test_label_ids.npy'
-            ),
-            test_prediction.label_ids
-        )
+        return trainer
 
-    return trainer
+
 
 def make_model(model_config: Dict=None):
     """Make model from model_config 
@@ -443,6 +451,18 @@ def get_config(args: argparse.Namespace=None) -> Dict:
 
         elif 'subjects_per_dataset' in arg:
             config[arg] = None if config[arg] == -1 else config[arg]
+    
+    if 'kfold' in config:
+        if config['kfold'] == False:
+            config['kfold'] = False
+        else:
+            try:
+                config['kfold'] = int(config['kfold'])
+                if config['kfold'] == 0:
+                    config['kfold'] = None  # This will be interpreted as LOOCV
+            except ValueError:
+                raise ValueError("Invalid value for --kfold. It must be an integer or 'False'.")
+
 
     return config
 
@@ -785,7 +805,14 @@ def get_args() -> argparse.ArgumentParser:
         help='dropout ratio for hidden layers of embedder and decoder model parts '
              '(default: 0.1)'
     )
-    
+    parser.add_argument(
+        '--kfold',
+        metavar='INT',
+        default='False',
+        type=str,  # Use string type to allow both integer values and the 'False' string
+        help='number of folds for K-fold cross-validation; set to 0 for LOOCV, set to "False" for no cross-validation (default: False)'
+    )
+  
     # Logging settings:
     parser.add_argument(
         '--log-dir',
@@ -1005,4 +1032,3 @@ if __name__ == '__main__':
     current_time = datetime.now()
     
     print("\nScript ends at: ", current_time.strftime("%H:%M:%S"))
-

@@ -170,4 +170,4 @@ class PretrainedGPT2(GPTModel):
         self.dropout_attn = self.config.attn_pdrop
         self.dropout_embd = self.config.embd_pdrop
         self.hidden_activation = self.config.activation_function
-        self.transformer = GPT2Model.from_pretrained("gpt2-medium")
+        self.transformer = GPT2Model.from_pretrained("gpt2")

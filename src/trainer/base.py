@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 from typing import Dict, List, Optional, Tuple
 
 from collections.abc import Mapping
@@ -13,7 +12,6 @@ from transformers import Trainer
 from torch.utils.data import DataLoader, Dataset, RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 import torch.distributed as dist
-
 
 from transformers.integrations import (  # isort: split
     hp_params,

@@ -384,7 +384,7 @@ class _FullyConnected(nn.Module):
 
         super().__init__()
         self.fc = nn.Sequential(
-            nn.Linear(final_fc_length*2, out_channels),
+            nn.Linear(3840, out_channels), # final_fc_length * 2 >> 3840 hardcoded
             nn.ELU(),
             nn.Dropout(drop_prob_1),
             nn.Linear(out_channels, hidden_channels),
@@ -393,9 +393,25 @@ class _FullyConnected(nn.Module):
         )
 
     def forward(self, x):
-        x = x.contiguous().view(x.size(0)//2, -1)
+        #print('Original shape of x:', x.shape)  # torch.Size([2, 96, 40])
+
+        # Adjust the tensor
+        # Divide the last dimension by 2 and flatten the tensor
+        # The reshape should consider the correct way to reduce the channel dimension
+        batch,features, channels = x.size()
+        x = x.view(batch, channels // 2, features * 2)
+
+        #print('Shape of x after dividing the last dimension by 2:', x.shape)
+
+        # Flatten the tensor for the fully connected layer
+        x = x.view(x.size(0), -1)
+
+        #print('Shape of x after flattening:', x.shape)
+
         out = self.fc(x)
+
         return out
+
 
 
 class _FinalLayer(nn.Module):
