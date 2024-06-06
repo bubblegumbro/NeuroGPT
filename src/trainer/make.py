@@ -269,7 +269,6 @@ def make_trainer(
         do_train=do_train,
         do_eval=do_eval,
         overwrite_output_dir=overwrite_output_dir,
-        
         per_device_train_batch_size=per_device_train_batch_size,
         per_device_eval_batch_size=per_device_eval_batch_size,
         dataloader_num_workers=dataloader_num_workers,
@@ -291,7 +290,7 @@ def make_trainer(
         logging_strategy=logging_strategy,
         logging_first_step=logging_first_step,
         logging_steps=logging_steps,
-        logging_dir=output_dir,
+        #logging_dir=output_dir,
         evaluation_strategy=evaluation_strategy,
         eval_steps=eval_steps if eval_steps is not None else logging_steps,
         seed=seed,
