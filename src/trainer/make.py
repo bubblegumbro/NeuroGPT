@@ -110,9 +110,7 @@ class ProfCallback(TrainerCallback):
     return reduced_logits '''
 
 
-def compute_metric(eval_preds):
-    return 1
-    
+
 class CSVLogCallback(TrainerCallback):
 
     def __init__(self):
