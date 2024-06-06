@@ -34,7 +34,7 @@ from batcher.downstream_dataset import EEGDatasetCls
 import torch
 import os
 import argparse
-
+from transformers.integrations import TensorBoardCallback
 from typing import Dict
 import json
 from datetime import datetime
@@ -168,6 +168,7 @@ def train(config: Dict=None) -> Trainer:
                 fp16=config["fp16"],
                 deepspeed=config["deepspeed"],
             )
+            trainer.add_callback(TensorBoardCallback())
 
             if config['do_train']:
                 trainer.train(resume_from_checkpoint=config["resume_from"])
@@ -219,6 +220,7 @@ def train(config: Dict=None) -> Trainer:
             training_style=config["training_style"],
             run_name=config["run_name"],
             output_dir=config["log_dir"],
+            
             train_dataset=train_dataset,
             validation_dataset=validation_dataset,
             per_device_train_batch_size=config["per_device_training_batch_size"],
@@ -241,6 +243,7 @@ def train(config: Dict=None) -> Trainer:
             fp16=config["fp16"],
             deepspeed=config["deepspeed"],
         )
+        trainer.add_callback(TensorBoardCallback())
 
         if config['do_train']:
             trainer.train(resume_from_checkpoint=config["resume_from"])
