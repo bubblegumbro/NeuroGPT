@@ -186,11 +186,13 @@ def _cat_data_collator(features: List) -> Dict[str, torch.tensor]:
         if not k.startswith('__')
     }
 
-
+acc = []
 def decoding_accuracy_metrics(eval_preds):
     preds, labels = eval_preds
     preds = preds.argmax(axis=-1)
     accuracy = accuracy_score(labels, preds)
+    acc.append(accuracy)
+    print(acc)
     return {
         "accuracy": round(accuracy, 3)
     }
