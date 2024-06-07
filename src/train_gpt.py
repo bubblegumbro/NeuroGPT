@@ -182,6 +182,9 @@ def train(config: Dict=None) -> Trainer:
 
             trn_results.append(trainer.state.log_history)
             val_results.append(val_prediction.metrics)
+            # Calculate accuracy for current fold
+            accuracy = (val_prediction.predictions.argmax(axis=-1) == val_prediction.label_ids).mean()
+            val_accuracies.append(accuracy)
 
         # Calculate and print cross-validation scores
         if k_folds > 1:
@@ -196,6 +199,7 @@ def train(config: Dict=None) -> Trainer:
             print("\nCross-Validation Scores:")
             for metric, values in avg_metrics.items():
                 print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
+            print(f"Accuracy: Mean = {avg_accuracy:.4f}, Std = {std_accuracy:.4f}")
 
         return trn_results, val_results
 
