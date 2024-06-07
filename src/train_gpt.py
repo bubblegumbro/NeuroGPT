@@ -121,6 +121,7 @@ def train(config: Dict=None) -> Trainer:
 
         val_results = []
         trn_results = []
+        val_accuracies = []
 
         for i in range(k_folds):
             if config['kfold'] is None:
@@ -182,8 +183,9 @@ def train(config: Dict=None) -> Trainer:
 
             trn_results.append(trainer.state.log_history)
             val_results.append(val_prediction.metrics)
+            
             # Calculate accuracy for current fold
-            accuracy = (val_prediction.predictions.argmax(axis=-1) == val_prediction.label_ids).mean()
+            accuracy = (np.argmax(val_prediction['predictions'], axis=-1) == val_prediction['label_ids']).mean()
             val_accuracies.append(accuracy)
 
         # Calculate and print cross-validation scores
@@ -196,12 +198,17 @@ def train(config: Dict=None) -> Trainer:
                     'std': np.std(metric_values)
                 }
 
+            avg_accuracy = np.mean(val_accuracies)
+            std_accuracy = np.std(val_accuracies)
+
             print("\nCross-Validation Scores:")
+            
             for metric, values in avg_metrics.items():
                 print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
             print(f"Accuracy: Mean = {avg_accuracy:.4f}, Std = {std_accuracy:.4f}")
 
         return trn_results, val_results
+
 
     else:
         # Handling for CSM or CSM_causal
