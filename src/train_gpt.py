@@ -128,17 +128,16 @@ def train(config: Dict=None) -> Trainer:
                 train_files = all_data[:i] + all_data[i+1:]
                 val_files = [all_data[i]]
             elif config['kfold'] is False:
-                    train_files = all_data[config["fold_i"]:]  #all_data[:int(0.75 * len(all_data))]
-                    val_files = all_data[:config["fold_i"]]  #all_data[int(0.75 * len(all_data)):]
-
+                train_files = all_data[config["fold_i"]:]
+                val_files = all_data[:config["fold_i"]]
             else:
                 fold_size = len(all_data) // k_folds
-                val_files = all_data[i*fold_size:(i+1)*fold_size]
-                train_files = all_data[:i*fold_size] + all_data[(i+1)*fold_size:]
+                val_files = all_data[i * fold_size:(i + 1) * fold_size]
+                train_files = all_data[:i * fold_size] + all_data[(i + 1) * fold_size:]
 
-            print('downstream_path : ',downstream_path)
-            print('Train files : ',train_files)
-            print('Val_files: ',val_files)
+            print('downstream_path : ', downstream_path)
+            print('Train files : ', train_files)
+            print('Val_files: ', val_files)
             train_dataset = EEGDatasetCls(folder_path=downstream_path, files=train_files)
             validation_dataset = EEGDatasetCls(folder_path=downstream_path, files=val_files)
 
@@ -177,11 +176,18 @@ def train(config: Dict=None) -> Trainer:
 
             val_prediction = trainer.predict(validation_dataset)
 
+            # Add debug prints
+            print("\nval_prediction:", val_prediction)
+            print("Type of val_prediction:", type(val_prediction))
+
             if isinstance(val_prediction, tuple):
                 predictions, label_ids, _ = val_prediction
             else:
                 predictions = val_prediction.predictions
                 label_ids = val_prediction.label_ids
+
+            print("Predictions shape:", predictions.shape)
+            print("Label IDs shape:", label_ids.shape)
 
             pd.DataFrame(val_prediction.metrics, index=[0]).to_csv(
                 os.path.join(config["log_dir"], f'val_metrics_fold_{i}.csv'), index=False)
