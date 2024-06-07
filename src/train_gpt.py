@@ -72,12 +72,14 @@ def train(config: Dict=None) -> Trainer:
     
     if config is None:
         config = get_config()
+
     if config['do_train']:
         os.makedirs(config["log_dir"], exist_ok=True)
         resume_path = str(config["resume_from"]) if config["resume_from"] is not None else None
         
         if resume_path is not None:
             config_filepath = os.path.join(config["resume_from"], 'train_config.json')
+
             if os.path.isfile(config_filepath):
                 print(f'Loading training config from {config_filepath}')
                 with open(config_filepath, 'r') as f:
@@ -99,12 +101,14 @@ def train(config: Dict=None) -> Trainer:
             with open(config_filepath, 'w') as f:
                 json.dump(config, f, indent=2)
             config["resume_from"] = None
+
     assert config["training_style"] in {'CSM', 'CSM_causal', 'decoding'}, f'{config["training_style"]} is not supported.'
     assert config["architecture"] in {'GPT', 'PretrainedGPT2'}, f'{config["architecture"]} is not supported.'
     
     if config['set_seed']:
         random.seed(config["seed"])
         manual_seed(config["seed"])
+
     if config["training_style"] == 'decoding':
         downstream_path = config["dst_data_path"]
         all_data = sorted(os.listdir(downstream_path))
@@ -114,24 +118,29 @@ def train(config: Dict=None) -> Trainer:
             k_folds = len(all_data)
         else:
             k_folds = config['kfold']
+
         val_results = []
         trn_results = []
+
         for i in range(k_folds):
             if config['kfold'] is None:
                 train_files = all_data[:i] + all_data[i+1:]
                 val_files = [all_data[i]]
             elif config['kfold'] is False:
-                    train_files = all_data[config["fold_i"]:]  #all_data[:int(0.75 * len(all_data))]
-                    val_files = all_data[:config["fold_i"]]  #all_data[int(0.75 * len(all_data)):]
+                    train_files = all_data  #all_data[:int(0.75 * len(all_data))]
+                    val_files = all_data  #all_data[int(0.75 * len(all_data)):]
+
             else:
                 fold_size = len(all_data) // k_folds
                 val_files = all_data[i*fold_size:(i+1)*fold_size]
                 train_files = all_data[:i*fold_size] + all_data[(i+1)*fold_size:]
+
             print('downstream_path : ',downstream_path)
             print('Train files : ',train_files)
             print('Val_files: ',val_files)
             train_dataset = EEGDatasetCls(folder_path=downstream_path, files=train_files)
             validation_dataset = EEGDatasetCls(folder_path=downstream_path, files=val_files)
+
             trainer = make_trainer(
                 model_init=lambda: make_model(config),
                 training_style=config["training_style"],
@@ -160,9 +169,11 @@ def train(config: Dict=None) -> Trainer:
                 deepspeed=config["deepspeed"],
             )
             trainer.add_callback(TensorBoardCallback())
+
             if config['do_train']:
                 trainer.train(resume_from_checkpoint=config["resume_from"])
                 trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
+
             val_prediction = trainer.predict(validation_dataset)
             pd.DataFrame(val_prediction.metrics, index=[0]).to_csv(
                 os.path.join(config["log_dir"], f'val_metrics_fold_{i}.csv'), index=False)
@@ -171,17 +182,20 @@ def train(config: Dict=None) -> Trainer:
 
             trn_results.append(trainer.state.log_history)
             val_results.append(val_prediction.metrics)
-            # Calculate accuracy for current fold
-            accuracy = (val_prediction.predictions.argmax(axis=-1) == val_prediction.label_ids).mean()
-            val_accuracies.append(accuracy)
 
         # Calculate and print cross-validation scores
         if k_folds > 1:
-@@ -196,6 +199,7 @@ def train(config: Dict=None) -> Trainer:
+            avg_metrics = {}
+            for metric in val_results[0]:
+                metric_values = [fold[metric] for fold in val_results]
+                avg_metrics[metric] = {
+                    'mean': np.mean(metric_values),
+                    'std': np.std(metric_values)
+                }
+
             print("\nCross-Validation Scores:")
             for metric, values in avg_metrics.items():
                 print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
-            print(f"Accuracy: Mean = {avg_accuracy:.4f}, Std = {std_accuracy:.4f}")
 
         return trn_results, val_results
 
@@ -200,6 +214,7 @@ def train(config: Dict=None) -> Trainer:
             'attention_mask'
         ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
         test_dataset = None
+
         trainer = make_trainer(
             model_init=lambda: make_model(config),
             training_style=config["training_style"],
@@ -229,6 +244,7 @@ def train(config: Dict=None) -> Trainer:
             deepspeed=config["deepspeed"],
         )
         trainer.add_callback(TensorBoardCallback())
+
         if config['do_train']:
             trainer.train(resume_from_checkpoint=config["resume_from"])
             trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
@@ -259,7 +275,9 @@ def train(config: Dict=None) -> Trainer:
                 ),
                 test_prediction.label_ids
             )
+
         return trainer
+
 
 
 def make_model(model_config: Dict=None):
@@ -1006,13 +1024,6 @@ def get_args() -> argparse.ArgumentParser:
         type=str,
         help='finetune with only encoder or not '
              '(default: False) '
-    )
-    parser.add_argument(
-        '--sub_list',
-        metavar='PATH',
-        default='../inputs/sub_list2.csv',
-        type=str,
-        help='path to the CSV file containing subject list'
     )
 
     return parser
