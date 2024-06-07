@@ -127,8 +127,8 @@ def train(config: Dict=None) -> Trainer:
                 train_files = all_data[:i] + all_data[i+1:]
                 val_files = [all_data[i]]
             elif config['kfold'] is False:
-                    train_files = all_data  #all_data[:int(0.75 * len(all_data))]
-                    val_files = all_data  #all_data[int(0.75 * len(all_data)):]
+                    train_files = all_data[config["fold_i"]:]  #all_data[:int(0.75 * len(all_data))]
+                    val_files = all_data[:config["fold_i"]]  #all_data[int(0.75 * len(all_data)):]
 
             else:
                 fold_size = len(all_data) // k_folds
