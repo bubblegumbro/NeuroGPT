@@ -193,9 +193,9 @@ def train(config: Dict=None) -> Trainer:
                     'std': np.std(metric_values)
                 }
 
-            print("\nCross-Validation Scores:")
-            for metric, values in avg_metrics.items():
-                print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
+        print("\nCross-Validation Scores:")
+        for metric, values in avg_metrics.items():
+            print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
 
         return trn_results, val_results
 
