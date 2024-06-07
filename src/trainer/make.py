@@ -306,7 +306,11 @@ def make_trainer(
     data_collator = _cat_data_collator
     is_deepspeed = deepspeed is not None
     # TODO: custom compute_metrics so far not working in multi-gpu setting
-    compute_metrics = decoding_accuracy_metrics if training_style=='decoding' and compute_metrics is None else compute_metrics
+    if training_style=='decoding':
+        compute_metrics=decoding_accuracy_metrics
+    else:
+        compute_metrics=None
+   # compute_metrics = decoding_accuracy_metrics if training_style=='decoding' else compute_metrics
 
     trainer = Trainer(
         args=trainer_args,
