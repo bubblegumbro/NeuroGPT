@@ -72,14 +72,12 @@ def train(config: Dict=None) -> Trainer:
     
     if config is None:
         config = get_config()
-
     if config['do_train']:
         os.makedirs(config["log_dir"], exist_ok=True)
         resume_path = str(config["resume_from"]) if config["resume_from"] is not None else None
         
         if resume_path is not None:
             config_filepath = os.path.join(config["resume_from"], 'train_config.json')
-
             if os.path.isfile(config_filepath):
                 print(f'Loading training config from {config_filepath}')
                 with open(config_filepath, 'r') as f:
@@ -101,14 +99,12 @@ def train(config: Dict=None) -> Trainer:
             with open(config_filepath, 'w') as f:
                 json.dump(config, f, indent=2)
             config["resume_from"] = None
-
     assert config["training_style"] in {'CSM', 'CSM_causal', 'decoding'}, f'{config["training_style"]} is not supported.'
     assert config["architecture"] in {'GPT', 'PretrainedGPT2'}, f'{config["architecture"]} is not supported.'
     
     if config['set_seed']:
         random.seed(config["seed"])
         manual_seed(config["seed"])
-
     if config["training_style"] == 'decoding':
         downstream_path = config["dst_data_path"]
         all_data = sorted(os.listdir(downstream_path))
@@ -118,29 +114,24 @@ def train(config: Dict=None) -> Trainer:
             k_folds = len(all_data)
         else:
             k_folds = config['kfold']
-
         val_results = []
         trn_results = []
-        val_accuracies = []
-
         for i in range(k_folds):
             if config['kfold'] is None:
                 train_files = all_data[:i] + all_data[i+1:]
                 val_files = [all_data[i]]
             elif config['kfold'] is False:
-                train_files = all_data[config["fold_i"]:]
-                val_files = all_data[:config["fold_i"]]
+                    train_files = all_data[config["fold_i"]:]  #all_data[:int(0.75 * len(all_data))]
+                    val_files = all_data[:config["fold_i"]]  #all_data[int(0.75 * len(all_data)):]
             else:
                 fold_size = len(all_data) // k_folds
-                val_files = all_data[i * fold_size:(i + 1) * fold_size]
-                train_files = all_data[:i * fold_size] + all_data[(i + 1) * fold_size:]
-
-            print('downstream_path : ', downstream_path)
-            print('Train files : ', train_files)
-            print('Val_files: ', val_files)
+                val_files = all_data[i*fold_size:(i+1)*fold_size]
+                train_files = all_data[:i*fold_size] + all_data[(i+1)*fold_size:]
+            print('downstream_path : ',downstream_path)
+            print('Train files : ',train_files)
+            print('Val_files: ',val_files)
             train_dataset = EEGDatasetCls(folder_path=downstream_path, files=train_files)
             validation_dataset = EEGDatasetCls(folder_path=downstream_path, files=val_files)
-
             trainer = make_trainer(
                 model_init=lambda: make_model(config),
                 training_style=config["training_style"],
@@ -169,51 +160,24 @@ def train(config: Dict=None) -> Trainer:
                 deepspeed=config["deepspeed"],
             )
             trainer.add_callback(TensorBoardCallback())
-
             if config['do_train']:
                 trainer.train(resume_from_checkpoint=config["resume_from"])
                 trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
-
             val_prediction = trainer.predict(validation_dataset)
-
-            # Add debug prints
-            print("\nval_prediction:", val_prediction)
-            print("Type of val_prediction:", type(val_prediction))
-
-            if isinstance(val_prediction, tuple):
-                predictions, label_ids, _ = val_prediction
-            else:
-                predictions = val_prediction.predictions
-                label_ids = val_prediction.label_ids
-
-            print("Predictions shape:", predictions.shape)
-            print("Label IDs shape:", label_ids.shape)
-
             pd.DataFrame(val_prediction.metrics, index=[0]).to_csv(
                 os.path.join(config["log_dir"], f'val_metrics_fold_{i}.csv'), index=False)
-            np.save(os.path.join(config["log_dir"], f'val_predictions_fold_{i}.npy'), predictions)
-            np.save(os.path.join(config["log_dir"], f'val_label_ids_fold_{i}.npy'), label_ids)
+            np.save(os.path.join(config["log_dir"], f'val_predictions_fold_{i}.npy'), val_prediction.predictions)
+            np.save(os.path.join(config["log_dir"], f'val_label_ids_fold_{i}.npy'), val_prediction.label_ids)
 
             trn_results.append(trainer.state.log_history)
             val_results.append(val_prediction.metrics)
-            
             # Calculate accuracy for current fold
-            accuracy = (np.argmax(predictions, axis=-1) == label_ids).mean()
+            accuracy = (val_prediction.predictions.argmax(axis=-1) == val_prediction.label_ids).mean()
             val_accuracies.append(accuracy)
 
         # Calculate and print cross-validation scores
         if k_folds > 1:
-            avg_metrics = {}
-            for metric in val_results[0]:
-                metric_values = [fold[metric] for fold in val_results]
-                avg_metrics[metric] = {
-                    'mean': np.mean(metric_values),
-                    'std': np.std(metric_values)
-                }
-
-            avg_accuracy = np.mean(val_accuracies)
-            std_accuracy = np.std(val_accuracies)
-
+@@ -196,6 +199,7 @@ def train(config: Dict=None) -> Trainer:
             print("\nCross-Validation Scores:")
             for metric, values in avg_metrics.items():
                 print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
@@ -221,11 +185,10 @@ def train(config: Dict=None) -> Trainer:
 
         return trn_results, val_results
 
-
     else:
         # Handling for CSM or CSM_causal
         root_path = config["train_data_path"]
-        files = read_threshold_sub(config["sub_list"], lower_bound=1000, upper_bound=1000000)
+        files = read_threshold_sub('../inputs/sub_list2.csv', lower_bound=1000, upper_bound=1000000)
         random.shuffle(files)
         #train_len = int(len(files) * 0.75)
         train_dataset = EEGDataset(files[1000:], sample_keys=[
@@ -237,7 +200,6 @@ def train(config: Dict=None) -> Trainer:
             'attention_mask'
         ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
         test_dataset = None
-
         trainer = make_trainer(
             model_init=lambda: make_model(config),
             training_style=config["training_style"],
@@ -267,7 +229,6 @@ def train(config: Dict=None) -> Trainer:
             deepspeed=config["deepspeed"],
         )
         trainer.add_callback(TensorBoardCallback())
-
         if config['do_train']:
             trainer.train(resume_from_checkpoint=config["resume_from"])
             trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
@@ -298,9 +259,7 @@ def train(config: Dict=None) -> Trainer:
                 ),
                 test_prediction.label_ids
             )
-
         return trainer
-
 
 
 def make_model(model_config: Dict=None):
