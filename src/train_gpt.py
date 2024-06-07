@@ -127,8 +127,8 @@ def train(config: Dict=None) -> Trainer:
                 train_files = all_data[:i] + all_data[i+1:]
                 val_files = [all_data[i]]
             elif config['kfold'] is False:
-                    train_files = all_data  #all_data[:int(0.75 * len(all_data))]
-                    val_files = all_data  #all_data[int(0.75 * len(all_data)):]
+                    train_files = all_data[config['fold_i']:]  #all_data[:int(0.75 * len(all_data))]
+                    val_files = all_data[:config['fold_i']]  #all_data[int(0.75 * len(all_data)):]
 
             else:
                 fold_size = len(all_data) // k_folds
@@ -202,7 +202,7 @@ def train(config: Dict=None) -> Trainer:
     else:
         # Handling for CSM or CSM_causal
         root_path = config["train_data_path"]
-        files = read_threshold_sub('../inputs/sub_list2.csv', lower_bound=1000, upper_bound=1000000)
+        files = read_threshold_sub(config["sub_list"], lower_bound=1000, upper_bound=1000000)
         random.shuffle(files)
         #train_len = int(len(files) * 0.75)
         train_dataset = EEGDataset(files[1000:], sample_keys=[
@@ -1024,6 +1024,13 @@ def get_args() -> argparse.ArgumentParser:
         type=str,
         help='finetune with only encoder or not '
              '(default: False) '
+    )
+    parser.add_argument(
+        '--sub_list',
+        metavar='PATH',
+        default='../inputs/sub_list2.csv',
+        type=str,
+        help='path to the CSV file containing subject list'
     )
 
     return parser
