@@ -176,16 +176,23 @@ def train(config: Dict=None) -> Trainer:
                 trainer.save_model(os.path.join(config["log_dir"], 'model_final'))
 
             val_prediction = trainer.predict(validation_dataset)
+
+            if isinstance(val_prediction, tuple):
+                predictions, label_ids, _ = val_prediction
+            else:
+                predictions = val_prediction.predictions
+                label_ids = val_prediction.label_ids
+
             pd.DataFrame(val_prediction.metrics, index=[0]).to_csv(
                 os.path.join(config["log_dir"], f'val_metrics_fold_{i}.csv'), index=False)
-            np.save(os.path.join(config["log_dir"], f'val_predictions_fold_{i}.npy'), val_prediction.predictions)
-            np.save(os.path.join(config["log_dir"], f'val_label_ids_fold_{i}.npy'), val_prediction.label_ids)
+            np.save(os.path.join(config["log_dir"], f'val_predictions_fold_{i}.npy'), predictions)
+            np.save(os.path.join(config["log_dir"], f'val_label_ids_fold_{i}.npy'), label_ids)
 
             trn_results.append(trainer.state.log_history)
             val_results.append(val_prediction.metrics)
             
             # Calculate accuracy for current fold
-            accuracy = (np.argmax(val_prediction['predictions'], axis=-1) == val_prediction['label_ids']).mean()
+            accuracy = (np.argmax(predictions, axis=-1) == label_ids).mean()
             val_accuracies.append(accuracy)
 
         # Calculate and print cross-validation scores
@@ -202,7 +209,6 @@ def train(config: Dict=None) -> Trainer:
             std_accuracy = np.std(val_accuracies)
 
             print("\nCross-Validation Scores:")
-            
             for metric, values in avg_metrics.items():
                 print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
             print(f"Accuracy: Mean = {avg_accuracy:.4f}, Std = {std_accuracy:.4f}")
