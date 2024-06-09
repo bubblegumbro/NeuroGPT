@@ -224,7 +224,6 @@ def train(config: Dict=None) -> Trainer:
             training_style=config["training_style"],
             run_name=config["run_name"],
             output_dir=config["log_dir"],
-            
             train_dataset=train_dataset,
             validation_dataset=validation_dataset,
             per_device_train_batch_size=config["per_device_training_batch_size"],
@@ -239,14 +238,16 @@ def train(config: Dict=None) -> Trainer:
             max_grad_norm=config["max_grad_norm"],
             lr_scheduler_type=config["lr_scheduler"],
             warmup_ratio=config["warmup_ratio"],
-            max_steps=config["training_steps"],
+            max_steps=config["training_steps"] if config["training_type"] == "steps" else -1,
+            num_train_epochs=config["num_epochs"] if config["training_type"] == "epoch" else 1,
+            evaluation_strategy=config["training_type"],
             save_steps=config["log_every_n_steps"],
             logging_steps=config["log_every_n_steps"],
             eval_steps=config["eval_every_n_steps"],
             seed=config["seed"] if config['set_seed'] else np.random.choice(range(1, 100000)),
             fp16=config["fp16"],
             deepspeed=config["deepspeed"],
-        )
+    )
         trainer.add_callback(TensorBoardCallback())
 
         if config['do_train']:
@@ -1036,6 +1037,21 @@ def get_args() -> argparse.ArgumentParser:
         default='../inputs/sub_list2.csv',
         type=str,
         help='path to the CSV file containing subject list'
+    )
+    parser.add_argument(
+        '--training-type',
+        metavar='STR',
+        default='steps',
+        choices=('steps', 'epoch'),
+        type=str,
+        help='Specify training type: steps or epochs (default: steps)'
+    )
+    parser.add_argument(
+        '--num-epochs',
+        metavar='INT',
+        default=80,
+        type=int,
+        help='Number of epochs to train for if training type is epochs (default: 3)'
     )
 
     return parser
