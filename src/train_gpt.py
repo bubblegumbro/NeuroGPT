@@ -123,12 +123,17 @@ def train(config: Dict=None) -> Trainer:
         trn_results = []
 
         for i in range(k_folds):
-            if config['kfold'] is None:
+            if config['kfold'] is None: #LOOCV
                 train_files = all_data[:i] + all_data[i+1:]
                 val_files = [all_data[i]]
             elif config['kfold'] is False:
-                    train_files = all_data[config['fold_i']:]  #all_data[:int(0.75 * len(all_data))]
-                    val_files = all_data[:config['fold_i']]  #all_data[int(0.75 * len(all_data)):]
+                train_folds, test_folds = cv_split_bci(sorted(os.listdir(downstream_path))[:18])
+                print(f"Train folds : {train_folds}")
+                print(f"Val folds : {test_folds}")
+                train_files = train_folds[config['fold_i']]
+                val_files = test_folds[config['fold_i']]
+                    #train_files = all_data[config['fold_i']:]  #all_data[:int(0.75 * len(all_data))]
+                    #val_files = all_data[:config['fold_i']]  #all_data[int(0.75 * len(all_data)):]
 
             else:
                 fold_size = len(all_data) // k_folds
