@@ -191,9 +191,9 @@ def process_gdf_file(gdf_file):
         print(gdf_file)
         # input("Press Enter to continue or Ctrl+C to abort.")
 
-    if 256 >= 2 * f.info.get("lowpass", 0):
+    if 250 >= 2 * f.info.get("lowpass", 0):
         try:
-            f = f.resample(sfreq=256)
+            f = f.resample(sfreq=250)
             f = f.rename_channels(ch_map)
             f = process_file(
                 f,
