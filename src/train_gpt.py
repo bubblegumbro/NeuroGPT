@@ -189,18 +189,18 @@ def train(config: Dict=None) -> Trainer:
             val_results.append(val_prediction.metrics)
 
         # Calculate and print cross-validation scores
-        if k_folds > 1:
-            avg_metrics = {}
-            for metric in val_results[0]:
-                metric_values = [fold[metric] for fold in val_results]
-                avg_metrics[metric] = {
-                    'mean': np.mean(metric_values),
-                    'std': np.std(metric_values)
-                }
+       # if k_folds > 1:
+        avg_metrics = {}
+        for metric in val_results[0]:
+            metric_values = [fold[metric] for fold in val_results]
+            avg_metrics[metric] = {
+                'mean': np.mean(metric_values),
+                'std': np.std(metric_values)
+            }
 
-            print("\nCross-Validation Scores:")
-            for metric, values in avg_metrics.items():
-                print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
+        print("\nCross-Validation Scores:")
+        for metric, values in avg_metrics.items():
+            print(f"{metric}: Mean = {values['mean']:.4f}, Std = {values['std']:.4f}")
 
         return trn_results, val_results
 
