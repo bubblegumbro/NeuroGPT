@@ -211,11 +211,11 @@ def train(config: Dict=None) -> Trainer:
         print(files)
         random.shuffle(files)
         #train_len = int(len(files) * 0.75)
-        train_dataset = EEGDataset(files[1000:], sample_keys=[
+        train_dataset = EEGDataset(files[10:], sample_keys=[
             'inputs',
             'attention_mask'
         ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
-        validation_dataset = EEGDataset(files[:1000], sample_keys=[
+        validation_dataset = EEGDataset(files[:10], sample_keys=[
             'inputs',
             'attention_mask'
         ], chunk_len=config["chunk_len"], num_chunks=config["num_chunks"], ovlp=config["chunk_ovlp"], root_path=root_path, gpt_only= not config["use_encoder"], normalization=config["do_normalization"])
