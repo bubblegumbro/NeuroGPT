@@ -293,7 +293,7 @@ def make_model(model_config: Dict=None):
     if model_config["use_encoder"] == True:
         chann_coords = None
         
-        encoder = EEGConformer(n_outputs=model_config["num_decoding_classes"], n_chans=20, n_times=model_config['chunk_len'], ch_pos=chann_coords, is_decoding_mode=model_config["ft_only_encoder"])
+        encoder = EEGConformer(n_outputs=model_config["num_decoding_classes"], n_chans=10, n_times=model_config['chunk_len'], ch_pos=chann_coords, is_decoding_mode=model_config["ft_only_encoder"])
        
         #calculates the output dimension of the encoder, which is the output of transformer layer.
         #model_config["parcellation_dim"] = 1080
@@ -302,7 +302,7 @@ def make_model(model_config: Dict=None):
 
     else:
         encoder = None
-        model_config["parcellation_dim"] = model_config["chunk_len"] * 20
+        model_config["parcellation_dim"] = model_config["chunk_len"] * 10
 
     embedder = make_embedder(
         training_style=model_config["training_style"],
