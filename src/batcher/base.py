@@ -229,8 +229,8 @@ class EEGDataset(Dataset):
             self.filenames = [root_path + fn for fn in filenames if os.path.isfile(root_path+fn)]
             self.root_path = root_path
             
-       # print("Number of subjects loaded: ", len(self.filenames))
-        #print("Filenames loaded:", self.filenames)
+        print("Number of subjects loaded: ", len(self.filenames))
+        print("Filenames loaded:", self.filenames)
         
         # self.data = data_all
         self.chunk_len = chunk_len
@@ -244,11 +244,11 @@ class EEGDataset(Dataset):
         self.start_samp_pnt = start_samp_pnt
 
     def __len__(self):
-        #print(f"Dataset Length: {len(self.filenames)}")
+        print(f"Dataset Length: {len(self.filenames)}")
         return len(self.filenames)
 
     def __getitem__(self, idx):
-        #print(f"Getting item: {idx}")
+        print(f"Getting item: {idx}")
         data = self.load_tensor(self.filenames[idx])
         #===reorder channels====
         data = self.reorder_channels(data)
@@ -280,9 +280,9 @@ class EEGDataset(Dataset):
 
     def load_tensor(self, filename):
         # tensor_fn = filename[:-3] + 'pt'
-        #print(f"Attempting to load file: {filename}")
+        print(f"Attempting to load file: {filename}")
         tensor_data = torch.load(filename)
-       # print(f"Loaded file successfully: {filename}")
+        print(f"Loaded file successfully: {filename}")
         return tensor_data.numpy()
 
     def reorder_channels(self, data):
@@ -291,7 +291,7 @@ class EEGDataset(Dataset):
         reorder_labels = {'FP1': 0, 'FP2': 1, 'F7': 2, 'F3': 3, 'FZ': 4, 'F4': 5, 'F8': 6, 'T3': 7, 'C3': 8, 'CZ': 9, 'C4': 10, 'T4': 11, 'T5': 12, 'P3': 13, 'PZ': 14, 'P4': 15, 'T6': 16, 'O1': 17, 'OZ': 18, 'O2': 19}
 
         # Adjust the array size to 20 channels
-        reordered = np.zeros((20, data.shape[1]))
+        reordered = np.zeros((10, data.shape[1]))
         for label, target_idx in reorder_labels.items():
             mapped_idx = chann_labels[label]
             reordered[target_idx, :] = data[mapped_idx, :]
