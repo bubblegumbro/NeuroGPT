@@ -206,7 +206,9 @@ def train(config: Dict=None) -> Trainer:
     else:
         # Handling for CSM or CSM_causal
         root_path = config["train_data_path"]
+        print("Root Path: ",root_path)
         files = read_threshold_sub(config["sub_list"], lower_bound=1000, upper_bound=1000000)
+        print(files)
         random.shuffle(files)
         #train_len = int(len(files) * 0.75)
         train_dataset = EEGDataset(files[1000:], sample_keys=[
