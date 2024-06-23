@@ -18,6 +18,57 @@ def _pad_seq_right_to_n(seq: np.ndarray, n: int, pad_value: float = 0.) -> np.nd
         axis=0,
     )
 
+def process_gdf_file(gdf_file):
+    print("the file to be processed is: ", gdf_file)
+    try:
+        f = mne.io.read_raw_gdf(
+            gdf_file, eog=["EOG-left", "EOG-central", "EOG-right"], preload=True
+        )
+        f.drop_channels(["EOG-left", "EOG-central", "EOG-right"])
+    except Exception as e:
+        print(f"Error reading EDF file {gdf_file}: {e}")
+        return
+
+    assert "lowpass" in f.info, "lowpass information is not available in f.info"
+    assert f.info["lowpass"] > 0, "lowpass frequency should be greater than 0"
+    assert f.info["sfreq"] > 0, "Sampling frequency should be greater than 0"
+
+    if f.info["bads"]:
+        print(f"Warning: The following channels are marked as bad: {f.info['bads']}")
+        print(gdf_file)
+        # input("Press Enter to continue or Ctrl+C to abort.")
+
+    if 256 >= 2 * f.info.get("lowpass", 0):
+        try:
+            f = f.resample(sfreq=256)
+            f = f.rename_channels(ch_map)
+            f = process_file(
+                f,
+                ch_map=ch_map,
+                ch_list=ch_list,
+                ds_max=ds_max,
+                ds_min=ds_min,
+            )
+        except Exception as e:
+            print(
+                f"An error occurred while processing the file {gdf_file}: {e} or while resampling"
+            )
+            # continue
+
+        event_id = {"769": 0, "770": 1, "771": 2, "772": 3}
+        events = mne.events_from_annotations(f, event_id=event_id)
+        epochs = mne.Epochs(
+            f, events[0], [0, 1, 2, 3], tmin=-2, tmax=4, on_missing="warn"
+        )
+        # print("here", np.max(f.get_data()), np.min(f.get_data()))
+        df = epochs.to_data_frame(scalings=dict(eeg=1, mag=1, grad=1))
+        # print("df", df.iloc[:, 3:].values.max(), df.iloc[:, 3:].values.min())
+        df["person"] = f.info["subject_info"]["his_id"]
+        indices = [(f.info["subject_info"]["his_id"], ep) for ep in df.epoch.unique()]
+
+        return df, indices
+
+
 # Updated channel mapping for 10 channels (9 data channels + 1 compensation channel)
 ch_map = {
     'LHC': 'LHC',
