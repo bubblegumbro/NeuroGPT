@@ -227,7 +227,8 @@ class EEGDataset(Dataset):
             self.filenames = filenames
         else:
             print('Else')
-            print([root_path + fn for fn in filenames if os.path.isfile(root_path+fn)])
+            print('CHECK BELOW')
+            print([root_path + fn for fn in filename])
             self.filenames = [root_path + fn for fn in filenames if os.path.isfile(root_path+fn)]
             self.root_path = root_path
             
