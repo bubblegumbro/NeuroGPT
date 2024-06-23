@@ -229,7 +229,7 @@ class EEGDataset(Dataset):
             print('Else')
             print('CHECK BELOW')
             print([root_path + fn for fn in filenames])
-            self.filenames = [root_path + fn for fn in filenames if os.path.isfile(root_path+fn)]
+            self.filenames = [root_path + fn for fn in filenames]
             self.root_path = root_path
             
         print("Number of subjects loaded: ", len(self.filenames))
@@ -290,8 +290,8 @@ class EEGDataset(Dataset):
 
     def reorder_channels(self, data):
     # Updated channel labels with 'T1' and 'T2' removed
-        chann_labels = {'FP1': 0, 'FP2': 1, 'F3': 2, 'F4': 3, 'C3': 4, 'C4': 5, 'P3': 6, 'P4': 7, 'O1': 8, 'O2': 9, 'F7': 10, 'F8': 11, 'T3': 12, 'T4': 13, 'T5': 14, 'T6': 15, 'FZ': 16, 'CZ': 17, 'PZ': 18, 'OZ': 19}
-        reorder_labels = {'FP1': 0, 'FP2': 1, 'F7': 2, 'F3': 3, 'FZ': 4, 'F4': 5, 'F8': 6, 'T3': 7, 'C3': 8, 'CZ': 9, 'C4': 10, 'T4': 11, 'T5': 12, 'P3': 13, 'PZ': 14, 'P4': 15, 'T6': 16, 'O1': 17, 'OZ': 18, 'O2': 19}
+        chann_labels = {'FP1': 0, 'FP2': 1, 'F3': 2, 'F4': 3, 'C3': 4, 'C4': 5, 'P3': 6, 'P4': 7, 'O1': 8, 'O2': 9, }
+        reorder_labels = {'FP1': 0, 'FP2': 1, 'F7': 2, 'F3': 3, 'FZ': 4, 'F4': 5, 'F8': 6, 'T3': 7, 'C3': 8, 'CZ': 9, }
 
         # Adjust the array size to 20 channels
         reordered = np.zeros((10, data.shape[1]))
