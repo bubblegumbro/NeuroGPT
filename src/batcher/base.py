@@ -229,7 +229,7 @@ class EEGDataset(Dataset):
             print('Else')
             print('CHECK BELOW')
             print([root_path + fn for fn in filenames])
-            self.filenames = [root_path + fn for fn in filenames]
+            self.filenames = [root_path + fn + '.pt' for fn in filenames]
             self.root_path = root_path
             
         print("Number of subjects loaded: ", len(self.filenames))
